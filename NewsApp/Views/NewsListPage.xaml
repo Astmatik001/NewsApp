@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NewsApp.Views.NewsListPage"
+             Title="Новости">
+    <RefreshView IsRefreshing="{Binding IsRefreshing}" Command="{Binding LoadHeadlinesCommand}">
+        <CollectionView ItemsSource="{Binding Headlines}" SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="10" RowDefinitions="Auto,Auto">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewModels:NewsListViewModel}}, Path=OpenArticleCommand}" CommandParameter="{Binding .}"/>
+                        </Grid.GestureRecognizers>
+                        <Label Text="{Binding Title}" FontSize="16" FontAttributes="Bold"/>
+                        <Label Grid.Row="1" Text="{Binding Summary}" FontSize="12" TextColor="Gray" LineBreakMode="WordWrap"/>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </RefreshView>
+</ContentPage>
