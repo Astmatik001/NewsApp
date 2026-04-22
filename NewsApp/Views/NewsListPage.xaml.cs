@@ -11,5 +11,10 @@ namespace NewsApp.Views
             var vm = App.ServiceProvider.GetRequiredService<NewsListViewModel>();
             BindingContext = vm;
         }
+        public NewsListPage(NewsListViewModel vm)
+        {
+            InitializeComponent();
+            BindingContext = vm;
+        }
     }
 }
