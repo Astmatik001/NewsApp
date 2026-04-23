@@ -27,11 +27,24 @@ namespace NewsApp.ViewModels
             Headlines = new ObservableCollection<Article>();
         }
 
+        public async Task<List<string>> GetSelectedCategories()
+        {
+            return await _db.GetUserCategoriesAsync(_userId);
+        }
+
         [RelayCommand]
-        private async Task LoadHeadlines()
+        public async Task LoadHeadlines()
         {
             IsRefreshing = true;
-            var categories = await _db.GetUserCategoriesAsync(_userId);
+            var categories = await GetSelectedCategories();
+
+            if (categories == null || categories.Count == 0)
+            {
+                IsRefreshing = false;
+                await Shell.Current.GoToAsync("//CategorySelectionPage");
+                return;
+            }
+
             var articles = await _newsService.GetHeadlinesAsync(categories);
             Headlines.Clear();
             foreach (var art in articles)
@@ -42,10 +55,6 @@ namespace NewsApp.ViewModels
         [RelayCommand]
         private async Task OpenArticle(Article article)
         {
-            var parameters = new ShellNavigationQueryParameters
-            {
-                { "url", article.Url }
-            };
             await Shell.Current.GoToAsync($"ArticleDetailPage?url={Uri.EscapeDataString(article.Url)}");
         }
     }

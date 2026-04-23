@@ -1,12 +1,11 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Collections.ObjectModel;
+using System.Windows.Input;
 using NewsApp.Models;
 using NewsApp.Services;
-using System.Collections.ObjectModel;
-using System.Windows.Input;
 
 namespace NewsApp.ViewModels
 {
-    public class CategorySelectionViewModel : ObservableObject
+    public class CategorySelectionViewModel
     {
         private readonly LocalDatabaseService _db;
         private readonly string _userId;

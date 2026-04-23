@@ -8,16 +8,20 @@
         <CollectionView ItemsSource="{Binding AvailableCategories}">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Button Text="{Binding NameRu}" 
-                            Command="{Binding BindingContext.ToggleCategoryCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
-                            CommandParameter="{Binding .}"
+                    <Button Text="{Binding NameRu}"
+                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ToggleCategoryCommand}"
+                            CommandParameter="{Binding}"
                             BackgroundColor="LightGray"
                             Margin="5"/>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
-        <Button Text="Продолжить" 
-                Command="{Binding SaveAndContinueCommand}" 
-                HorizontalOptions="Center"/>
+        <Button Text="Продолжить"
+                Command="{Binding SaveAndContinueCommand}"
+                HorizontalOptions="Center"
+                BackgroundColor="Green"
+                TextColor="White"/>
+        <Label Text="{Binding SelectedCategories.Count, StringFormat='Выбрано: {0}'}" 
+       HorizontalOptions="Center" Margin="10"/>
     </VerticalStackLayout>
 </ContentPage>

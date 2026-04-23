@@ -9,6 +9,7 @@ namespace NewsApp
         {
             InitializeComponent();
             Routing.RegisterRoute("ArticleDetailPage", typeof(ArticleDetailPage));
+            Routing.RegisterRoute("CategorySelectionPage", typeof(CategorySelectionPage));
         }
     }
 }
