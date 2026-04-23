@@ -14,6 +14,7 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
+        MainPage = new ContentPage { Content = new Label { Text = "Loading..." } };
     }
 
     protected override void OnStart()
@@ -35,7 +36,18 @@ public partial class App : Application
         var userId = Preferences.Get("user_id", Guid.NewGuid().ToString());
         Preferences.Set("user_id", userId);
         var onboardingCompleted = db.GetOnboardingCompletedAsync(userId).GetAwaiter().GetResult();
-        MainPage = new NavigationPage(onboardingCompleted ? new NewsListPage() : new CategorySelectionPage());
+
+        try
+        {
+            Page firstPage = onboardingCompleted
+                ? new NewsListPage(ServiceProvider.GetRequiredService<NewsListViewModel>())
+                : new CategorySelectionPage(ServiceProvider.GetRequiredService<CategorySelectionViewModel>());
+            MainPage = new NavigationPage(firstPage);
+        }
+        catch (Exception ex)
+        {
+            MainPage = new ContentPage { Content = new Label { Text = $"Error: {ex.Message}" } };
+        }
     }
 
     private void ConfigureServices(IServiceCollection services, IConfiguration config)

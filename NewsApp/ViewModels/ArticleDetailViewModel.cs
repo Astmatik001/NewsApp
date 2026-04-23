@@ -1,9 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NewsApp.Services;
-using System.IO;
-using System.Threading.Tasks;
 using Plugin.Maui.Audio;
+using System.IO;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace NewsApp.ViewModels
 {
@@ -31,7 +32,12 @@ namespace NewsApp.ViewModels
         [ObservableProperty]
         private string analysisResult;
 
-        public ArticleDetailViewModel(LocalDatabaseService db, DeepSeekService deepSeek, CambAiTtsService tts, AnalyticsService analytics, IAudioManager audioManager)
+        public ArticleDetailViewModel(
+            LocalDatabaseService db,
+            DeepSeekService deepSeek,
+            CambAiTtsService tts,
+            AnalyticsService analytics,
+            IAudioManager audioManager)
         {
             _db = db;
             _deepSeek = deepSeek;
@@ -50,10 +56,9 @@ namespace NewsApp.ViewModels
             }
             else
             {
-                // Fetch full article from original URL (simplified: load raw HTML)
                 using var client = new System.Net.Http.HttpClient();
                 var html = await client.GetStringAsync(url);
-                ArticleHtmlContent = html; // In production, extract main content
+                ArticleHtmlContent = html;
                 ArticleTitle = cached?.Title ?? "Article";
                 if (cached != null)
                 {
@@ -77,40 +82,22 @@ namespace NewsApp.ViewModels
             try
             {
                 IsAudioPlaying = true;
-
-                // Extract plain text from HTML content
-                var plainText = System.Text.RegularExpressions.Regex.Replace(
-                    ArticleHtmlContent,
-                    "<.*?>",
-                    string.Empty
-                );
-
-                // Generate speech stream from Camb AI
-                var audioStream = await _tts.SynthesizeSpeechAsync(
-                    text: plainText,
-                    voiceId: 147320,      // "Gary" - warm English voice
-                    language: "en-us",
-                    speechModel: "mars-flash"
-                );
-
-                // Create and play audio player
+                var plainText = Regex.Replace(ArticleHtmlContent, "<.*?>", string.Empty);
+                var audioStream = await _tts.SynthesizeSpeechAsync(plainText);
                 _currentPlayer = _audioManager.CreatePlayer(audioStream);
                 _currentPlayer.Play();
-
-                // Handle playback end
                 _currentPlayer.PlaybackEnded += (s, e) =>
                 {
                     IsAudioPlaying = false;
                     _currentPlayer?.Dispose();
                     _currentPlayer = null;
                 };
-
                 await _analytics.TrackEventAsync("audio_played");
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 IsAudioPlaying = false;
-                await Shell.Current.DisplayAlert("Error", $"Failed to generate audio: {ex.Message}", "OK");
+                await Shell.Current.DisplayAlert("Error", $"Failed to play audio: {ex.Message}", "OK");
             }
         }
 
@@ -119,18 +106,16 @@ namespace NewsApp.ViewModels
         {
             if (IsLoadingAnalysis) return;
             IsLoadingAnalysis = true;
-            var plainText = System.Text.RegularExpressions.Regex.Replace(ArticleHtmlContent, "<.*?>", string.Empty);
+            var plainText = Regex.Replace(ArticleHtmlContent, "<.*?>", string.Empty);
             var result = await _deepSeek.AnalyzeGrammarAndVocabularyAsync(plainText);
             AnalysisResult = result;
             IsLoadingAnalysis = false;
             await _analytics.TrackEventAsync("grammar_analysis");
         }
 
-        // Called from WebView when a word is tapped
         public async Task OnWordTapped(string word, string context)
         {
             var translation = await _deepSeek.TranslateWordAsync(word, context);
-            // Show popup – implement using Application.Current.MainPage.DisplayAlert
             await Shell.Current.DisplayAlert("Translation", $"{word} → {translation}", "OK");
             await _analytics.TrackEventAsync("word_tap", new() { { "word", word } });
         }

@@ -5,7 +5,6 @@
         public int Id { get; set; }
         public string NameEn { get; set; }
         public string NameRu { get; set; }
-        public string NytSection { get; set; }    // For NYT API
-
+        public string NytSection { get; set; }
     }
 }

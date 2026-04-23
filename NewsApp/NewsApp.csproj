@@ -61,6 +61,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="appsettings.json" />
 	  <None Remove="Resources\mipmap\appicon.png" />
 	  <None Remove="Resources\mipmap\appicon_round.png" />
 	</ItemGroup>
@@ -68,6 +69,10 @@
 	<ItemGroup>
 	  <AndroidResource Include="Resources\mipmap\appicon.png" />
 	  <AndroidResource Include="Resources\mipmap\appicon_round.png" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="appsettings.json" />
 	</ItemGroup>
 
 	<ItemGroup>

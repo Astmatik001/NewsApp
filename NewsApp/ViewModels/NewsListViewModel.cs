@@ -19,11 +19,11 @@ namespace NewsApp.ViewModels
         [ObservableProperty]
         private bool isRefreshing;
 
-        public NewsListViewModel(INewsService newsService, LocalDatabaseService db, string userId)
+        public NewsListViewModel(INewsService newsService, LocalDatabaseService db)
         {
             _newsService = newsService;
             _db = db;
-            _userId = userId;
+            _userId = Preferences.Get("user_id", Guid.NewGuid().ToString());
             Headlines = new ObservableCollection<Article>();
         }
 
@@ -46,7 +46,7 @@ namespace NewsApp.ViewModels
             {
                 { "url", article.Url }
             };
-            await Shell.Current.GoToAsync("ArticleDetailPage", parameters);
+            await Shell.Current.GoToAsync($"ArticleDetailPage?url={Uri.EscapeDataString(article.Url)}");
         }
     }
 }

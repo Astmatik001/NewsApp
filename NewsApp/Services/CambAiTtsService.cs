@@ -17,7 +17,7 @@ namespace NewsApp.Services
 
         public CambAiTtsService(string apiKey)
         {
-            _apiKey = apiKey ?? throw new ArgumentNullException(nameof(apiKey));
+             _apiKey = apiKey ?? throw new ArgumentNullException(nameof(apiKey));
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Add("x-api-key", _apiKey);
         }

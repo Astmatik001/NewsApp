@@ -1,27 +1,27 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using NewsApp.Models;
 using NewsApp.Services;
 using System.Collections.ObjectModel;
-using System.Threading.Tasks;
+using System.Windows.Input;
 
 namespace NewsApp.ViewModels
 {
-    public partial class CategorySelectionViewModel : ObservableObject
+    public class CategorySelectionViewModel : ObservableObject
     {
         private readonly LocalDatabaseService _db;
         private readonly string _userId;
 
-        [ObservableProperty]
-        private ObservableCollection<Category> availableCategories;
+        public ObservableCollection<Category> AvailableCategories { get; }
+        public ObservableCollection<Category> SelectedCategories { get; }
 
-        [ObservableProperty]
-        private ObservableCollection<Category> selectedCategories;
+        public ICommand ToggleCategoryCommand { get; }
+        public ICommand SaveAndContinueCommand { get; }
 
-        public CategorySelectionViewModel(LocalDatabaseService db, string userId)
+        public CategorySelectionViewModel(LocalDatabaseService db)
         {
             _db = db;
-            _userId = userId;
+            _userId = Preferences.Get("user_id", Guid.NewGuid().ToString());
+
             AvailableCategories = new ObservableCollection<Category>
             {
                 new Category { Id = 1, NameEn = "World", NameRu = "Мир", NytSection = "world" },
@@ -31,23 +31,23 @@ namespace NewsApp.ViewModels
                 new Category { Id = 5, NameEn = "Science", NameRu = "Наука", NytSection = "science" }
             };
             SelectedCategories = new ObservableCollection<Category>();
+
+            ToggleCategoryCommand = new Command<Category>(ToggleCategory);
+            SaveAndContinueCommand = new Command(SaveAndContinue);
         }
 
-        [RelayCommand]
         private void ToggleCategory(Category category)
         {
+            if (category == null) return;
             if (SelectedCategories.Contains(category))
                 SelectedCategories.Remove(category);
             else
                 SelectedCategories.Add(category);
         }
 
-        [RelayCommand]
-        private async Task SaveAndContinue()
+        private async void SaveAndContinue()
         {
-            var selectedNames = new System.Collections.Generic.List<string>();
-            foreach (var cat in SelectedCategories)
-                selectedNames.Add(cat.NameEn);
+            var selectedNames = SelectedCategories.Select(c => c.NameEn).ToList();
             await _db.SaveUserCategoriesAsync(_userId, selectedNames);
             await _db.SetOnboardingCompletedAsync(_userId, true);
             await Shell.Current.GoToAsync("//NewsListPage");

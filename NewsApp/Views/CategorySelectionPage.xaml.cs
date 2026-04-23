@@ -5,10 +5,9 @@ namespace NewsApp.Views
 {
     public partial class CategorySelectionPage : ContentPage
     {
-        public CategorySelectionPage()
+        public CategorySelectionPage(CategorySelectionViewModel vm)
         {
             InitializeComponent();
-            var vm = App.ServiceProvider.GetRequiredService<CategorySelectionViewModel>();
             BindingContext = vm;
         }
 
