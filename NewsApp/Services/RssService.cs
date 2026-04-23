@@ -15,6 +15,7 @@ namespace NewsApp.Services
             { "World", "http://feeds.bbci.co.uk/news/world/rss.xml" },
             { "Technology", "http://feeds.bbci.co.uk/news/technology/rss.xml" },
             { "Business", "http://feeds.bbci.co.uk/news/business/rss.xml" },
+            { "Sports", "http://feeds.bbci.co.uk/sport/rss.xml" },
             { "Science", "http://feeds.bbci.co.uk/news/science_and_environment/rss.xml" }
         };
 
@@ -38,8 +39,7 @@ namespace NewsApp.Services
                         Url = item.Links.FirstOrDefault()?.Uri.ToString(),
                         Category = category,
                         Source = "RSS",
-                        PublishDate = item.PublishDate.DateTime,
-                        ContentHtml = null
+                        PublishDate = item.PublishDate.DateTime
                     });
                 }
             }

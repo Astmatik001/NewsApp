@@ -52,8 +52,6 @@ public partial class App : Application
 
     private void ConfigureServices(IServiceCollection services, IConfiguration config)
     {
-        var nytApiKey = config["ApiSettings:NytApiKey"];
-        var nytApiSecret = config["ApiSettings:NytApiSecret"];
         var deepSeekKey = config["ApiSettings:DeepSeekApiKey"];
         var cambAiKey = config["ApiSettings:CambAiApiKey"];
         var analyticsUrl = config["ApiSettings:AnalyticsBackendUrl"];
@@ -61,7 +59,7 @@ public partial class App : Application
         services.AddSingleton(new LocalDatabaseService());
         services.AddSingleton(new DeepSeekService(deepSeekKey));
         services.AddSingleton(new CambAiTtsService(cambAiKey));
-        services.AddSingleton<INewsService>(provider => new NyTimesService(nytApiKey, nytApiSecret));
+        services.AddSingleton<INewsService, RssService>();
         services.AddSingleton<IAudioManager>(AudioManager.Current);
 
         services.AddSingleton(provider =>
