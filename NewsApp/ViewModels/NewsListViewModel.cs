@@ -55,7 +55,19 @@ namespace NewsApp.ViewModels
         [RelayCommand]
         private async Task OpenArticle(Article article)
         {
-            await Shell.Current.GoToAsync($"ArticleDetailPage?url={Uri.EscapeDataString(article.Url)}");
+            if (article == null || string.IsNullOrEmpty(article.Url))
+            {
+                await Shell.Current.DisplayAlert("Error", "Article URL is missing", "OK");
+                return;
+            }
+            try
+            {
+                await Shell.Current.GoToAsync($"ArticleDetailPage?url={Uri.EscapeDataString(article.Url)}");
+            }
+            catch (Exception ex)
+            {
+                await Shell.Current.DisplayAlert("Navigation Error", ex.Message, "OK");
+            }
         }
     }
 }
