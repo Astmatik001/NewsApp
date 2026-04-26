@@ -365,3 +365,4 @@ FodyWeavers.xsd
 # settings
 *.json
 /NewsApp/NewsApp.csproj
+*.csproj
