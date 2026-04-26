@@ -1,62 +1,178 @@
-using NewsApp.ViewModels;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Xaml;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Graphics;
+using NewsApp.Models;
+using NewsApp.Services;
 using Microsoft.Extensions.DependencyInjection;
-using System.Web;
+using System;
+using System.Threading.Tasks;
 
 namespace NewsApp.Views
 {
-    [QueryProperty(nameof(ArticleUrl), "url")]
+    [XamlCompilation(XamlCompilationOptions.Compile)]
     public partial class ArticleDetailPage : ContentPage
     {
-        private ArticleDetailViewModel _vm;
+        public string ArticleUrl { get; set; }
+        public string ArticleTitle { get; set; }
 
-        public ArticleDetailPage(ArticleDetailViewModel vm)
+        public ArticleDetailPage()
         {
             InitializeComponent();
-            _vm = vm;
-            BindingContext = _vm;
+            OpenUrlButton.Clicked += OnOpenUrlClicked;
+            
+            ReadCheckBox.CheckedChanged += async (s, e) => {
+                ReadLabel.Text = ReadCheckBox.IsChecked ? "Прочитано ✓" : "Прочитано";
+                ReadLabel.TextColor = ReadCheckBox.IsChecked ? Colors.Green : Colors.Gray;
+                if (ReadCheckBox.IsChecked && !string.IsNullOrEmpty(ArticleUrl))
+                {
+                    await SaveReadStatus();
+                }
+            };
+            
+            FavoriteCheckBox.CheckedChanged += async (s, e) => {
+                FavoriteLabel.Text = FavoriteCheckBox.IsChecked ? "В избранном ★" : "В избранное";
+                FavoriteLabel.TextColor = FavoriteCheckBox.IsChecked ? Colors.Orange : Colors.Gray;
+                if (FavoriteCheckBox.IsChecked && !string.IsNullOrEmpty(ArticleUrl))
+                {
+                    await SaveFavoriteStatus();
+                }
+            };
         }
 
-        private string _articleUrl;
-        public string ArticleUrl
+        private async Task SaveReadStatus()
         {
-            get => _articleUrl;
-            set
+            try
             {
-                _articleUrl = HttpUtility.UrlDecode(value);
-                _vm.LoadArticle(_articleUrl);
+                var userId = Preferences.Get("user_id", "");
+                if (App.ServiceProvider == null || string.IsNullOrEmpty(userId)) return;
+                
+                var db = App.ServiceProvider.GetRequiredService<LocalDatabaseService>();
+                var article = new Article 
+                { 
+                    Title = ArticleTitle, 
+                    Summary = SummaryLabel.Text, 
+                    Source = SourceLabel.Text,
+                    Url = ArticleUrl
+                };
+                await db.MarkAsReadAsync(userId, article);
+            }
+            catch { }
+        }
+
+        private async Task SaveFavoriteStatus()
+        {
+            try
+            {
+                var userId = Preferences.Get("user_id", "");
+                if (App.ServiceProvider == null || string.IsNullOrEmpty(userId)) return;
+                
+                var db = App.ServiceProvider.GetRequiredService<LocalDatabaseService>();
+                var article = new Article 
+                { 
+                    Title = ArticleTitle, 
+                    Summary = SummaryLabel.Text, 
+                    Source = SourceLabel.Text,
+                    Url = ArticleUrl
+                };
+                await db.MarkAsFavoriteAsync(userId, article);
+            }
+            catch { }
+        }
+
+        public ArticleDetailPage(string title, string summary, string source, string url) : this()
+        {
+            Title = title;
+            ArticleTitle = title;
+            ArticleUrl = url;
+            
+            TitleLabel.Text = title;
+            SummaryLabel.Text = summary;
+            SourceLabel.Text = source;
+            
+            LoadContent(url);
+        }
+
+        private async void LoadContent(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return;
+            
+            ContentLabel.Text = "Загрузка...";
+            string summaryCopy = SummaryLabel.Text ?? "";
+            
+            try
+            {
+                var content = await FetchArticleContentAsync(url);
+                if (!string.IsNullOrEmpty(content))
+                {
+                    ContentLabel.Text = content;
+                }
+                else
+                {
+                    ContentLabel.Text = summaryCopy + "\n\n" + "Полный текст недоступен. Нажмите кнопку ниже для открытия.";
+                }
+            }
+            catch (Exception ex)
+            {
+                ContentLabel.Text = $"Ошибка загрузки: {ex.Message}";
             }
         }
 
-        private void OnWebViewNavigated(object sender, WebNavigatedEventArgs e)
+        private async Task<string> FetchArticleContentAsync(string url)
         {
-            var js = @"
-                (function() {
-                    function handleTap() {
-                        var selection = window.getSelection();
-                        if (selection.toString().trim().length > 0) {
-                            var word = selection.toString();
-                            // Send to native via custom URL
-                            var iframe = document.createElement('IFRAME');
-                            iframe.setAttribute('src', 'word://' + encodeURIComponent(word));
-                            document.documentElement.appendChild(iframe);
-                            iframe.parentNode.removeChild(iframe);
-                            selection.removeAllRanges();
+            try
+            {
+                using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromSeconds(10);
+                var html = await client.GetStringAsync(url);
+                
+                var startTag = "<p";
+                var endTag = "</p>";
+                var content = new System.Text.StringBuilder();
+                var index = 0;
+                
+                while (true)
+                {
+                    index = html.IndexOf(startTag, index);
+                    if (index < 0) break;
+                    
+                    var closeIndex = html.IndexOf(endTag, index);
+                    if (closeIndex < 0) break;
+                    
+                    var para = html.Substring(index, closeIndex - index + 4);
+                    if (para.Contains("<p") && !para.Contains("class="))
+                    {
+                        var textStart = para.IndexOf(">", startTag.Length);
+                        if (textStart > 0)
+                        {
+                            var text = para.Substring(textStart + 1);
+                            if (text.Length > 20 && !text.Contains("<"))
+                            {
+                                content.AppendLine(text.Trim());
+                            }
                         }
                     }
-                    document.addEventListener('touchend', handleTap);
-                    document.addEventListener('mouseup', handleTap);
-                })();
-            ";
-            ArticleWebView.EvaluateJavaScriptAsync(js);
+                    index = closeIndex + 1;
+                }
+                
+                var result = content.ToString().Trim();
+                if (string.IsNullOrEmpty(result))
+                {
+                    return null;
+                }
+                return result;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
-        private void OnWebViewNavigating(object sender, WebNavigatingEventArgs e)
+        private async void OnOpenUrlClicked(object sender, EventArgs e)
         {
-            if (e.Url.StartsWith("word://"))
+            if (!string.IsNullOrEmpty(ArticleUrl))
             {
-                e.Cancel = true;
-                var word = Uri.UnescapeDataString(e.Url.Replace("word://", ""));
-                _vm.OnWordTapped(word, "");
+                await Launcher.OpenAsync(ArticleUrl);
             }
         }
     }

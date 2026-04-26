@@ -1,14 +1,17 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Windows.Input;
 using NewsApp.Models;
 using NewsApp.Services;
+using NewsApp.Views;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.Controls;
 
 namespace NewsApp.ViewModels
 {
     public class CategorySelectionViewModel
     {
         private readonly LocalDatabaseService _db;
-        private readonly string _userId;
+        private string _userId;
 
         public ObservableCollection<Category> AvailableCategories { get; }
         public ObservableCollection<Category> SelectedCategories { get; }
@@ -19,7 +22,12 @@ namespace NewsApp.ViewModels
         public CategorySelectionViewModel(LocalDatabaseService db)
         {
             _db = db;
-            _userId = Preferences.Get("user_id", Guid.NewGuid().ToString());
+            _userId = Preferences.Get("user_id", "");
+            if (string.IsNullOrEmpty(_userId))
+            {
+                _userId = Guid.NewGuid().ToString();
+                Preferences.Set("user_id", _userId);
+            }
 
             AvailableCategories = new ObservableCollection<Category>
             {
@@ -46,10 +54,22 @@ namespace NewsApp.ViewModels
 
         private async void SaveAndContinue()
         {
+            if (SelectedCategories.Count == 0)
+            {
+                await Shell.Current.DisplayAlert("Ошибка", "Выберите хотя бы одну категорию", "OK");
+                return;
+            }
+            
             var selectedNames = SelectedCategories.Select(c => c.NameEn).ToList();
             await _db.SaveUserCategoriesAsync(_userId, selectedNames);
             await _db.SetOnboardingCompletedAsync(_userId, true);
-            await Shell.Current.GoToAsync("//NewsListPage");
+            
+            var db = App.ServiceProvider.GetRequiredService<LocalDatabaseService>();
+            var news = App.ServiceProvider.GetRequiredService<INewsService>();
+            var vm = new NewsListViewModel(news, db);
+            var page = new NewsListPage(vm);
+            
+            Application.Current?.MainPage?.Navigation?.PushAsync(page);
         }
     }
 }

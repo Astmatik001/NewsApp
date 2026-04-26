@@ -3,21 +3,35 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="NewsApp.Views.NewsListPage"
              Title="Новости">
-    <RefreshView IsRefreshing="{Binding IsRefreshing}" Command="{Binding LoadHeadlinesCommand}">
-        <CollectionView ItemsSource="{Binding Headlines}" SelectionMode="None">
-            <CollectionView.ItemTemplate>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <StackLayout Grid.Row="0" BackgroundColor="#E3F2FD">
+            <StackLayout Orientation="Horizontal" Padding="10">
+                <Label Text="Интересы: " FontSize="12" TextColor="Gray"/>
+                <Label x:Name="CategoriesLabel" FontSize="12" TextColor="#1976D2"/>
+                <Button Text="Изменить" Clicked="OnChangeCategories" FontSize="10" Padding="5,0" BackgroundColor="Transparent" TextColor="#1976D2"/>
+            </StackLayout>
+            <StackLayout Orientation="Horizontal" Padding="10,0,10,10">
+                <Button Text="🔖 Закладки" Clicked="OnBookmarksClicked" FontSize="12" Padding="10,5" BackgroundColor="#FF9800" TextColor="White"/>
+            </StackLayout>
+        </StackLayout>
+        
+        <ListView Grid.Row="1" ItemsSource="{Binding Headlines}" ItemSelected="OnItemSelected" HasUnevenRows="True">
+            <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Grid Padding="10" RowDefinitions="Auto,Auto">
-                        <Grid.GestureRecognizers>
-                            <TapGestureRecognizer 
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenArticleCommand}" 
-                                CommandParameter="{Binding .}"/>
-                        </Grid.GestureRecognizers>
-                        <Label Text="{Binding Title}" FontSize="16" FontAttributes="Bold"/>
-                        <Label Grid.Row="1" Text="{Binding Summary}" FontSize="12" TextColor="Gray" LineBreakMode="WordWrap"/>
-                    </Grid>
+                    <ViewCell>
+                        <StackLayout Padding="15,10" BackgroundColor="White">
+                            <Label Text="{Binding Title}" FontSize="16" FontAttributes="Bold" TextColor="Black"/>
+                            <Label Text="{Binding Summary}" FontSize="12" TextColor="Gray" MaxLines="3"/>
+                            <Label Text="{Binding Category}" FontSize="10" TextColor="#888" Margin="0,5,0,0"/>
+                        </StackLayout>
+                    </ViewCell>
                 </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
-    </RefreshView>
+            </ListView.ItemTemplate>
+        </ListView>
+    </Grid>
 </ContentPage>

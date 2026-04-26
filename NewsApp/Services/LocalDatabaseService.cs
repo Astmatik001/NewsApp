@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -43,6 +43,26 @@ namespace NewsApp.Services
                     category TEXT,
                     source TEXT,
                     publish_date TEXT
+                );
+                CREATE TABLE IF NOT EXISTS read_articles (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    url TEXT NOT NULL,
+                    title TEXT,
+                    summary TEXT,
+                    source TEXT,
+                    read_at TEXT,
+                    UNIQUE(user_id, url)
+                );
+                CREATE TABLE IF NOT EXISTS favorite_articles (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    url TEXT NOT NULL,
+                    title TEXT,
+                    summary TEXT,
+                    source TEXT,
+                    favorite_at TEXT,
+                    UNIQUE(user_id, url)
                 );
             ";
             cmd.ExecuteNonQuery();
@@ -143,6 +163,86 @@ namespace NewsApp.Services
                 };
             }
             return null;
+        }
+
+        public async Task MarkAsReadAsync(string userId, Article article)
+        {
+            using var conn = new SqliteConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+                INSERT OR REPLACE INTO read_articles (user_id, url, title, summary, source, read_at)
+                VALUES ($user, $url, $title, $summary, $src, $time)
+            ";
+            cmd.Parameters.AddWithValue("$user", userId);
+            cmd.Parameters.AddWithValue("$url", article.Url);
+            cmd.Parameters.AddWithValue("$title", article.Title);
+            cmd.Parameters.AddWithValue("$summary", article.Summary ?? "");
+            cmd.Parameters.AddWithValue("$src", article.Source);
+            cmd.Parameters.AddWithValue("$time", DateTime.Now.ToString("o"));
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        public async Task<List<Article>> GetReadArticlesAsync(string userId)
+        {
+            var list = new List<Article>();
+            using var conn = new SqliteConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT title, summary, source, url FROM read_articles WHERE user_id = $user ORDER BY read_at DESC";
+            cmd.Parameters.AddWithValue("$user", userId);
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                list.Add(new Article
+                {
+                    Title = reader.GetString(0),
+                    Summary = reader.GetString(1),
+                    Source = reader.GetString(2),
+                    Url = reader.GetString(3)
+                });
+            }
+            return list;
+        }
+
+        public async Task MarkAsFavoriteAsync(string userId, Article article)
+        {
+            using var conn = new SqliteConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+                INSERT OR REPLACE INTO favorite_articles (user_id, url, title, summary, source, favorite_at)
+                VALUES ($user, $url, $title, $summary, $src, $time)
+            ";
+            cmd.Parameters.AddWithValue("$user", userId);
+            cmd.Parameters.AddWithValue("$url", article.Url);
+            cmd.Parameters.AddWithValue("$title", article.Title);
+            cmd.Parameters.AddWithValue("$summary", article.Summary ?? "");
+            cmd.Parameters.AddWithValue("$src", article.Source);
+            cmd.Parameters.AddWithValue("$time", DateTime.Now.ToString("o"));
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        public async Task<List<Article>> GetFavoriteArticlesAsync(string userId)
+        {
+            var list = new List<Article>();
+            using var conn = new SqliteConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT title, summary, source, url FROM favorite_articles WHERE user_id = $user ORDER BY favorite_at DESC";
+            cmd.Parameters.AddWithValue("$user", userId);
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                list.Add(new Article
+                {
+                    Title = reader.GetString(0),
+                    Summary = reader.GetString(1),
+                    Source = reader.GetString(2),
+                    Url = reader.GetString(3)
+                });
+            }
+            return list;
         }
     }
 }

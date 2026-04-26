@@ -1,75 +1,47 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NewsApp.Services;
 using NewsApp.ViewModels;
 using NewsApp.Views;
 using Plugin.Maui.Audio;
+using SCollection = Microsoft.Extensions.DependencyInjection.ServiceCollection;
 
 namespace NewsApp;
 
 public partial class App : Application
 {
-    public static IServiceProvider ServiceProvider { get; private set; }
+    public static IServiceProvider? ServiceProvider { get; private set; }
 
-    public App()
+    protected override void OnHandlerChanged()
     {
-        InitializeComponent();
-        MainPage = new ContentPage { Content = new Label { Text = "Loading..." } };
+        base.OnHandlerChanged();
+        Routing.RegisterRoute("//NewsListPage", typeof(NewsListPage));
+        Routing.RegisterRoute("//CategorySelectionPage", typeof(CategorySelectionPage));
+        Routing.RegisterRoute("//ArticleDetailPage", typeof(ArticleDetailPage));
+        Routing.RegisterRoute("//BookmarksPage", typeof(BookmarksPage));
     }
 
-    protected override void OnStart()
+    protected override Window CreateWindow(IActivationState? activationState)
     {
-        base.OnStart();
-
-        var config = Current?.Handler?.MauiContext?.Services.GetService<IConfiguration>();
-        if (config == null)
+        try 
         {
-            MainPage = new ContentPage { Content = new Label { Text = "Configuration error" } };
-            return;
-        }
-
-        var services = new ServiceCollection();
-        ConfigureServices(services, config);
-        ServiceProvider = services.BuildServiceProvider();
-
-        var db = ServiceProvider.GetRequiredService<LocalDatabaseService>();
-        var userId = Preferences.Get("user_id", Guid.NewGuid().ToString());
-        Preferences.Set("user_id", userId);
-        var onboardingCompleted = db.GetOnboardingCompletedAsync(userId).GetAwaiter().GetResult();
-
-        try
-        {
-            Page firstPage = onboardingCompleted
-                ? new NewsListPage(ServiceProvider.GetRequiredService<NewsListViewModel>())
-                : new CategorySelectionPage(ServiceProvider.GetRequiredService<CategorySelectionViewModel>());
-            MainPage = new NavigationPage(firstPage);
+            var services = new SCollection();
+            services.AddSingleton(new LocalDatabaseService());
+            services.AddSingleton<INewsService, RssService>();
+            services.AddTransient<NewsListViewModel>();
+            services.AddTransient<CategorySelectionViewModel>();
+            services.AddTransient<ArticleDetailViewModel>();
+            
+            ServiceProvider = services.BuildServiceProvider();
+            
+            var vm = ServiceProvider.GetRequiredService<CategorySelectionViewModel>();
+            var page = new CategorySelectionPage(vm);
+            
+            return new Window(new NavigationPage(page));
         }
         catch (Exception ex)
         {
-            MainPage = new ContentPage { Content = new Label { Text = $"Error: {ex.Message}" } };
+            return new Window(new ContentPage { Content = new Label { Text = $"Error: {ex.Message}" } });
         }
-    }
-
-    private void ConfigureServices(IServiceCollection services, IConfiguration config)
-    {
-        var deepSeekKey = config["ApiSettings:DeepSeekApiKey"];
-        var cambAiKey = config["ApiSettings:CambAiApiKey"];
-        var analyticsUrl = config["ApiSettings:AnalyticsBackendUrl"];
-
-        services.AddSingleton(new LocalDatabaseService());
-        services.AddSingleton(new DeepSeekService(deepSeekKey));
-        services.AddSingleton(new CambAiTtsService(cambAiKey));
-        services.AddSingleton<INewsService, RssService>();
-        services.AddSingleton<IAudioManager>(AudioManager.Current);
-
-        services.AddSingleton(provider =>
-        {
-            var userId = Preferences.Get("user_id", Guid.NewGuid().ToString());
-            return new AnalyticsService(analyticsUrl, userId);
-        });
-
-        services.AddTransient<CategorySelectionViewModel>();
-        services.AddTransient<NewsListViewModel>();
-        services.AddTransient<ArticleDetailViewModel>();
     }
 }

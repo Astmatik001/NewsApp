@@ -1,5 +1,9 @@
 using NewsApp.ViewModels;
+using NewsApp.Services;
+using NewsApp.Models;
 using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Threading.Tasks;
 
 namespace NewsApp.Views
 {
@@ -8,32 +12,75 @@ namespace NewsApp.Views
         public NewsListPage()
         {
             InitializeComponent();
-            var vm = App.ServiceProvider.GetRequiredService<NewsListViewModel>();
+            if (App.ServiceProvider == null) return;
+            var db = App.ServiceProvider.GetRequiredService<LocalDatabaseService>();
+            var news = App.ServiceProvider.GetRequiredService<INewsService>();
+            var vm = new NewsListViewModel(news, db);
             BindingContext = vm;
+            LoadCategories();
         }
         public NewsListPage(NewsListViewModel vm)
         {
             InitializeComponent();
             BindingContext = vm;
-        }
-        protected override async void OnAppearing()
-        {
-            base.OnAppearing();
-            var vm = BindingContext as NewsListViewModel;
-            if (vm != null)
+            LoadCategories();
+            if (vm.Headlines.Count == 0)
             {
-                var categories = await vm.GetSelectedCategories();
-                if (categories == null || categories.Count == 0)
+                vm.LoadHeadlines();
+            }
+        }
+
+        private async void LoadCategories()
+        {
+            try
+            {
+                var userId = Preferences.Get("user_id", "");
+                if (App.ServiceProvider != null && !string.IsNullOrEmpty(userId))
                 {
-                    await DisplayAlert("Нет категорий", "Пожалуйста, выберите интересы", "OK");
-                    await Shell.Current.GoToAsync("//CategorySelectionPage");
-                }
-                else
-                {
-                    if (vm.Headlines.Count == 0)
-                        await vm.LoadHeadlines();
+                    var db = App.ServiceProvider.GetRequiredService<LocalDatabaseService>();
+                    var cats = await db.GetUserCategoriesAsync(userId);
+                    if (cats != null && cats.Count > 0)
+                    {
+                        CategoriesLabel.Text = string.Join(", ", cats);
+                    }
+                    else
+                    {
+                        CategoriesLabel.Text = "РќРµ РІС‹Р±СЂР°РЅС‹";
+                    }
                 }
             }
+            catch
+            {
+                CategoriesLabel.Text = "РќРµ РІС‹Р±СЂР°РЅС‹";
+            }
+        }
+
+        private async void OnChangeCategories(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new CategorySelectionPage(
+                App.ServiceProvider.GetRequiredService<CategorySelectionViewModel>()));
+        }
+
+        private async void OnBookmarksClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new BookmarksPage());
+        }
+        
+        private async void OnItemSelected(object sender, SelectedItemChangedEventArgs e)
+        {
+            if (e.SelectedItem is Article article)
+            {
+                if (!string.IsNullOrEmpty(article.Url))
+                {
+                    var detailPage = new ArticleDetailPage(
+                        article.Title ?? "", 
+                        article.Summary ?? "", 
+                        article.Source ?? "",
+                        article.Url);
+                    await Navigation.PushAsync(detailPage);
+                }
+            }
+            ((ListView)sender).SelectedItem = null;
         }
     }
 }

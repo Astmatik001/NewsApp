@@ -3,6 +3,13 @@
     "Windows Machine": {
       "commandName": "MsixPackage",
       "nativeDebugging": false
+    },
+    "iOS Simulator": {
+      "commandName": "Project",
+      "commandLineArgs": "--framework net8.0-ios",
+      "debugTargetType": "MSBuild::$( _DbgFramework)",
+      "nativeDebugging": false,
+      "hotReloadProfile": "aspnetcore"
     }
   }
 }
