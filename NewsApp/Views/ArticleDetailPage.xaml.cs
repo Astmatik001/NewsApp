@@ -15,6 +15,7 @@ namespace NewsApp.Views
     {
         public string ArticleUrl { get; set; }
         public string ArticleTitle { get; set; }
+        private bool _isUpdating = false;
 
         public ArticleDetailPage()
         {
@@ -22,22 +23,38 @@ namespace NewsApp.Views
             OpenUrlButton.Clicked += OnOpenUrlClicked;
             
             ReadCheckBox.CheckedChanged += async (s, e) => {
+                if (_isUpdating) return;
+                _isUpdating = true;
                 ReadLabel.Text = ReadCheckBox.IsChecked ? "Прочитано ✓" : "Прочитано";
                 ReadLabel.TextColor = ReadCheckBox.IsChecked ? Colors.Green : Colors.Gray;
                 if (ReadCheckBox.IsChecked && !string.IsNullOrEmpty(ArticleUrl))
                 {
                     await SaveReadStatus();
                 }
+                _isUpdating = false;
             };
             
             FavoriteCheckBox.CheckedChanged += async (s, e) => {
+                if (_isUpdating) return;
+                _isUpdating = true;
                 FavoriteLabel.Text = FavoriteCheckBox.IsChecked ? "В избранном ★" : "В избранное";
                 FavoriteLabel.TextColor = FavoriteCheckBox.IsChecked ? Colors.Orange : Colors.Gray;
                 if (FavoriteCheckBox.IsChecked && !string.IsNullOrEmpty(ArticleUrl))
                 {
                     await SaveFavoriteStatus();
                 }
+                _isUpdating = false;
             };
+        }
+
+        private void OnReadTapped(object sender, EventArgs e)
+        {
+            ReadCheckBox.IsChecked = !ReadCheckBox.IsChecked;
+        }
+
+        private void OnFavoriteTapped(object sender, EventArgs e)
+        {
+            FavoriteCheckBox.IsChecked = !FavoriteCheckBox.IsChecked;
         }
 
         private async Task SaveReadStatus()

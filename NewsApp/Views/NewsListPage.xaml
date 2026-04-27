@@ -9,26 +9,64 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         
-        <StackLayout Grid.Row="0" BackgroundColor="#E3F2FD">
-            <StackLayout Orientation="Horizontal" Padding="10">
-                <Label Text="Интересы: " FontSize="12" TextColor="Gray"/>
-                <Label x:Name="CategoriesLabel" FontSize="12" TextColor="#1976D2"/>
-                <Button Text="Изменить" Clicked="OnChangeCategories" FontSize="10" Padding="5,0" BackgroundColor="Transparent" TextColor="#1976D2"/>
-            </StackLayout>
-            <StackLayout Orientation="Horizontal" Padding="10,0,10,10">
-                <Button Text="🔖 Закладки" Clicked="OnBookmarksClicked" FontSize="12" Padding="10,5" BackgroundColor="#FF9800" TextColor="White"/>
+        <!-- Header -->
+        <StackLayout Grid.Row="0" BackgroundColor="White">
+            <Frame BackgroundColor="#E3F2FD" CornerRadius="0" Padding="15" HasShadow="False">
+                <StackLayout>
+                    <StackLayout Orientation="Horizontal">
+                        <Label Text="🗞️ " FontSize="20"/>
+                        <Label Text="Ваши новости" FontSize="18" FontAttributes="Bold" TextColor="#1A1A2E"/>
+                    </StackLayout>
+                    <StackLayout Orientation="Horizontal" Margin="0,8,0,0">
+                        <Label Text="Интересы: " FontSize="12" TextColor="#888"/>
+                        <Label x:Name="CategoriesLabel" FontSize="12" TextColor="#1976D2"/>
+                    </StackLayout>
+                </StackLayout>
+            </Frame>
+            
+            <!-- Action Buttons -->
+            <StackLayout Orientation="Horizontal" Padding="10" Spacing="10">
+                <Button Text="🏠 Главная" FontSize="11" Padding="10,8" BackgroundColor="#E8F5E9" TextColor="#2E7D32" CornerRadius="15"/>
+                <Button Text="🔖 Закладки" Clicked="OnBookmarksClicked" FontSize="11" Padding="10,8" BackgroundColor="#FFF3E0" TextColor="#E65100" CornerRadius="15"/>
+                <Button Text="⚙️ Настройки" Clicked="OnChangeCategories" FontSize="11" Padding="10,8" BackgroundColor="#E3F2FD" TextColor="#1565C0" CornerRadius="15"/>
             </StackLayout>
         </StackLayout>
         
-        <ListView Grid.Row="1" ItemsSource="{Binding Headlines}" ItemSelected="OnItemSelected" HasUnevenRows="True">
+        <!-- News List -->
+        <ListView Grid.Row="1" 
+                  ItemsSource="{Binding Headlines}" 
+                  ItemSelected="OnItemSelected" 
+                  HasUnevenRows="True" 
+                  BackgroundColor="#F5F5F5"
+                  Margin="0">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <ViewCell>
-                        <StackLayout Padding="15,10" BackgroundColor="White">
-                            <Label Text="{Binding Title}" FontSize="16" FontAttributes="Bold" TextColor="Black"/>
-                            <Label Text="{Binding Summary}" FontSize="12" TextColor="Gray" MaxLines="3"/>
-                            <Label Text="{Binding Category}" FontSize="10" TextColor="#888" Margin="0,5,0,0"/>
-                        </StackLayout>
+                        <Frame BackgroundColor="White" Margin="10,5" CornerRadius="15" Padding="15">
+                            <StackLayout>
+                                <!-- Category Badge -->
+                                <Frame BackgroundColor="#E3F2FD" CornerRadius="10" Padding="8,4" HorizontalOptions="Start" Margin="0,0,0,8">
+                                    <Label Text="{Binding Category}" FontSize="10" TextColor="#1976D2" FontAttributes="Bold"/>
+                                </Frame>
+                                
+                                <!-- Title -->
+                                <Label Text="{Binding Title}" 
+                                       FontSize="15" FontAttributes="Bold" 
+                                       TextColor="#1A1A2E" 
+                                       MaxLines="3" LineBreakMode="WordWrap"/>
+                                
+                                <!-- Summary -->
+                                <Label Text="{Binding Summary}" 
+                                       FontSize="12" TextColor="#666" 
+                                       MaxLines="2" Margin="0,8,0,0"/>
+                                
+                                <!-- Source & Date -->
+                                <StackLayout Orientation="Horizontal" Margin="0,10,0,0">
+                                    <Label Text="📰 " FontSize="10"/>
+                                    <Label Text="{Binding Source}" FontSize="10" TextColor="#888"/>
+                                </StackLayout>
+                            </StackLayout>
+                        </Frame>
                     </ViewCell>
                 </DataTemplate>
             </ListView.ItemTemplate>
