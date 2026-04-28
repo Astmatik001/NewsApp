@@ -14,7 +14,7 @@ namespace NewsApp.ViewModels
     public partial class ArticleDetailViewModel : ObservableObject
     {
         private readonly LocalDatabaseService _db;
-        private readonly DeepSeekService _deepSeek;
+        private readonly TranslationService _translationService;
         private readonly CambAiTtsService _tts;
         private readonly AnalyticsService _analytics;
         private readonly IAudioManager _audioManager;
@@ -37,13 +37,13 @@ namespace NewsApp.ViewModels
 
         public ArticleDetailViewModel(
             LocalDatabaseService db,
-            DeepSeekService deepSeek,
+            TranslationService translationService,
             CambAiTtsService tts,
             AnalyticsService analytics,
             IAudioManager audioManager)
         {
             _db = db;
-            _deepSeek = deepSeek;
+            _translationService = translationService;
             _tts = tts;
             _analytics = analytics;
             _audioManager = audioManager;
@@ -238,19 +238,19 @@ namespace NewsApp.ViewModels
         [RelayCommand]
         private async Task AnalyzeGrammar()
         {
-            if (IsLoadingAnalysis) return;
-            IsLoadingAnalysis = true;
-            var plainText = Regex.Replace(ArticleHtmlContent, "<.*?>", string.Empty);
-            var result = await _deepSeek.AnalyzeGrammarAndVocabularyAsync(plainText);
-            AnalysisResult = result;
-            IsLoadingAnalysis = false;
-            await _analytics.TrackEventAsync("grammar_analysis");
+            //if (IsLoadingAnalysis) return;
+            //IsLoadingAnalysis = true;
+            //var plainText = Regex.Replace(ArticleHtmlContent, "<.*?>", string.Empty);
+            //var result = await _deepSeek.AnalyzeGrammarAndVocabularyAsync(plainText);
+            //AnalysisResult = result;
+            //IsLoadingAnalysis = false;
+            //await _analytics.TrackEventAsync("grammar_analysis");
         }
 
         public async Task OnWordTapped(string word, string context)
         {
-            var translation = await _deepSeek.TranslateWordAsync(word, context);
-            await Shell.Current.DisplayAlert("Translation", $"{word} → {translation}", "OK");
+            var translation = await _translationService.TranslateWordAsync(word);
+            await Shell.Current.DisplayAlert("Перевод", $"{word} → {translation}", "OK");
             await _analytics.TrackEventAsync("word_tap", new() { { "word", word } });
         }
     }

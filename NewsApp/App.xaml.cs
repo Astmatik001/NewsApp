@@ -79,16 +79,13 @@ public partial class App : Application
 
     private void ConfigureServices(IServiceCollection services, IConfiguration config)
     {
-        var deepSeekKey = config["ApiSettings:DeepSeekApiKey"];
-        var cambAiKey = config["ApiSettings:CambAiApiKey"];
-        var analyticsUrl = config["ApiSettings:AnalyticsBackendUrl"];
-
         services.AddSingleton(new LocalDatabaseService());
-        services.AddSingleton(new DeepSeekService(deepSeekKey ?? "dummy"));
-        services.AddSingleton(new CambAiTtsService(cambAiKey ?? "dummy"));
+        services.AddSingleton(new TranslationService(""));
         services.AddSingleton<INewsService, RssService>();
         services.AddSingleton<IAudioManager>(AudioManager.Current);
-        services.AddSingleton(provider => new AnalyticsService(analyticsUrl ?? "", Preferences.Get("user_id", Guid.NewGuid().ToString())));
+        services.AddSingleton(new CambAiTtsService("dummy")); // если не используете
+        services.AddSingleton(provider => new AnalyticsService("", Preferences.Get("user_id", Guid.NewGuid().ToString())));
+
         services.AddTransient<CategorySelectionViewModel>();
         services.AddTransient<NewsListViewModel>();
         services.AddTransient<ArticleDetailViewModel>();
