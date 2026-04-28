@@ -1,15 +1,12 @@
-using System;
-using System.Net.Http;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Xaml;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Graphics;
 using NewsApp.Models;
 using NewsApp.Services;
-using NewsApp.ViewModels;
-
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Threading.Tasks;
 
 namespace NewsApp.Views
 {
@@ -18,51 +15,85 @@ namespace NewsApp.Views
     {
         public string ArticleUrl { get; set; }
         public string ArticleTitle { get; set; }
+        private string _summary;
         private bool _isUpdating = false;
 
         public ArticleDetailPage()
         {
             InitializeComponent();
             OpenUrlButton.Clicked += OnOpenUrlClicked;
-            
+            TranslateSelectedButton.Clicked += OnTranslateSelectedClicked;
+
             ReadCheckBox.CheckedChanged += async (s, e) => {
+                if (_isUpdating) return;
+                _isUpdating = true;
                 ReadLabel.Text = ReadCheckBox.IsChecked ? "Прочитано ✓" : "Прочитано";
                 ReadLabel.TextColor = ReadCheckBox.IsChecked ? Colors.Green : Colors.Gray;
                 if (ReadCheckBox.IsChecked && !string.IsNullOrEmpty(ArticleUrl))
                     await SaveReadStatus();
-                }
+                _isUpdating = false;
             };
-            
+
             FavoriteCheckBox.CheckedChanged += async (s, e) => {
+                if (_isUpdating) return;
+                _isUpdating = true;
                 FavoriteLabel.Text = FavoriteCheckBox.IsChecked ? "В избранном ★" : "В избранное";
                 FavoriteLabel.TextColor = FavoriteCheckBox.IsChecked ? Colors.Orange : Colors.Gray;
                 if (FavoriteCheckBox.IsChecked && !string.IsNullOrEmpty(ArticleUrl))
                     await SaveFavoriteStatus();
-                }
+                _isUpdating = false;
             };
         }
 
+        private void OnReadTapped(object sender, EventArgs e) => ReadCheckBox.IsChecked = !ReadCheckBox.IsChecked;
+        private void OnFavoriteTapped(object sender, EventArgs e) => FavoriteCheckBox.IsChecked = !FavoriteCheckBox.IsChecked;
+
         private async Task SaveReadStatus()
         {
-            //SetupCustomWebViewClient();
+            try
+            {
+                var userId = Preferences.Get("user_id", "");
+                if (App.ServiceProvider == null || string.IsNullOrEmpty(userId)) return;
+                var db = App.ServiceProvider.GetRequiredService<LocalDatabaseService>();
+                var article = new Article
+                {
+                    Title = ArticleTitle,
+                    Summary = _summary,
+                    Source = SourceLabel.Text,
+                    Url = ArticleUrl
+                };
+                await db.MarkAsReadAsync(userId, article);
+            }
+            catch { }
         }
 
-        private void SetupCustomWebViewClient()
+        private async Task SaveFavoriteStatus()
         {
-#if ANDROID
-            if (ContentWebView.Handler?.PlatformView is Android.Webkit.WebView platformWebView)
+            try
             {
-                System.Diagnostics.Debug.WriteLine("Custom WebViewClient установлен");
+                var userId = Preferences.Get("user_id", "");
+                if (App.ServiceProvider == null || string.IsNullOrEmpty(userId)) return;
+                var db = App.ServiceProvider.GetRequiredService<LocalDatabaseService>();
+                var article = new Article
+                {
+                    Title = ArticleTitle,
+                    Summary = _summary,
+                    Source = SourceLabel.Text,
+                    Url = ArticleUrl
+                };
+                await db.MarkAsFavoriteAsync(userId, article);
             }
-#endif
+            catch { }
         }
 
         public ArticleDetailPage(string title, string summary, string source, string url) : this()
         {
+            Title = title;
             ArticleTitle = title;
             ArticleUrl = url;
+            _summary = summary;
+
             TitleLabel.Text = title;
-            SummaryLabel.Text = summary;
             SourceLabel.Text = source;
 
             LoadContent(url);
@@ -74,8 +105,13 @@ namespace NewsApp.Views
 
             try
             {
-                var content = await FetchArticleContentAsync(url);
+                // Show loading placeholder
+                ContentWebView.Source = new HtmlWebViewSource
+                {
+                    Html = "<html><body style='padding:20px'><p>Загрузка...</p></body></html>"
+                };
 
+                var content = await Task.Run(() => FetchArticleContentAsync(url));
                 string displayContent;
                 if (!string.IsNullOrEmpty(content))
                 {
@@ -88,55 +124,48 @@ namespace NewsApp.Views
                 else
                 {
                     displayContent = $@"
-                <div style='color: #666; font-style: italic; padding: 10px;'>
-                    {System.Security.SecurityElement.Escape(SummaryLabel.Text ?? "Нет описания")}
-                </div>
-                <div style='color: #999; font-size: 14px; margin-top: 10px;'>
-                    Полный текст недоступен
-                </div>";
+                        <div style='color: #666; font-style: italic;'>
+                            {System.Security.SecurityElement.Escape(_summary ?? "Нет описания")}
+                        </div>
+                        <div style='color: #999; font-size: 14px; margin-top: 10px;'>
+                            Полный текст недоступен
+                        </div>";
                 }
 
                 var htmlContent = $@"<!DOCTYPE html>
-                    <html>
-                    <head>
-                        <meta charset='UTF-8'>
-                        <meta name='viewport' content='width=device-width, initial-scale=1.0, user-scalable=yes'>
-                        <style>
-                            body {{
-                                padding: 15px;
-                                font-family: -apple-system, system-ui, sans-serif;
-                                font-size: 16px;
-                                line-height: 1.6;
-                                color: #333;
-                                -webkit-user-select: text;
-                                user-select: text;
-                            }}
-                            p {{ margin-bottom: 1em; }}
-                            a {{ pointer-events: none; color: inherit; text-decoration: none; }}
-                        </style>
-                    </head>
-                    <body>
-                        {displayContent}
-                    </body>
-                    </html>";
-
-                // Сбрасываем флаг перед новой загрузкой
-                _isInitialLoad = true;
+<html>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, user-scalable=yes'>
+    <style>
+        body {{
+            padding: 15px;
+            font-family: -apple-system, system-ui, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+            -webkit-user-select: text;
+            user-select: text;
+            background: white;
+        }}
+        p {{ margin-bottom: 1em; }}
+        a {{ pointer-events: none; color: inherit; text-decoration: none; }}
+    </style>
+</head>
+<body>
+    {displayContent}
+</body>
+</html>";
+                // Set the source on UI thread
                 ContentWebView.Source = new HtmlWebViewSource { Html = htmlContent };
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Ошибка загрузки", ex.Message, "OK");
-                // Показываем сообщение об ошибке в WebView
-                var errorHtml = $"<html><body style='padding:20px'><p style='color:red'>Ошибка: {ex.Message}</p></body></html>";
-                ContentWebView.Source = new HtmlWebViewSource { Html = errorHtml };
+                ContentWebView.Source = new HtmlWebViewSource
+                {
+                    Html = $"<html><body style='padding:20px'><p style='color:red'>Ошибка: {ex.Message}</p></body></html>"
+                };
             }
-#if ANDROID
-            if (ContentWebView.Handler?.PlatformView is Android.Webkit.WebView platformWebView)
-            {
-                platformWebView.SetLayerType(Android.Views.LayerType.Software, null);
-            }
-#endif
         }
 
         private async Task<string> FetchArticleContentAsync(string url)
@@ -156,10 +185,8 @@ namespace NewsApp.Views
                 {
                     index = html.IndexOf(startTag, index);
                     if (index < 0) break;
-
                     var closeIndex = html.IndexOf(endTag, index);
                     if (closeIndex < 0) break;
-
                     var para = html.Substring(index, closeIndex - index + 4);
                     if (para.Contains("<p") && !para.Contains("class="))
                     {
@@ -176,48 +203,54 @@ namespace NewsApp.Views
                 var result = content.ToString().Trim();
                 return string.IsNullOrEmpty(result) ? null : result;
             }
-            catch
-            {
-                return null;
-            }
+            catch { return null; }
         }
 
-        private async Task SaveReadStatus()
+        private async void OnTranslateSelectedClicked(object sender, EventArgs e)
         {
             try
             {
-                var userId = Preferences.Get("user_id", "");
-                if (App.ServiceProvider == null || string.IsNullOrEmpty(userId)) return;
-                var db = App.ServiceProvider.GetRequiredService<LocalDatabaseService>();
-                var article = new Article
+                if (ContentWebView == null || !ContentWebView.IsLoaded)
                 {
-                    Title = ArticleTitle,
-                    Summary = SummaryLabel.Text,
-                    Source = SourceLabel.Text,
-                    Url = ArticleUrl
-                };
-                await db.MarkAsReadAsync(userId, article);
+                    await DisplayAlert("Информация", "Подождите, страница ещё загружается", "OK");
+                    return;
+                }
+
+                var js = "window.getSelection().toString().trim();";
+                var selectedText = await ContentWebView.EvaluateJavaScriptAsync(js);
+                if (!string.IsNullOrEmpty(selectedText))
+                {
+                    var translationService = App.ServiceProvider?.GetRequiredService<TranslationService>();
+                    if (translationService != null)
+                    {
+                        var translation = await translationService.TranslateWordAsync(selectedText);
+                        await DisplayAlert("Перевод", $"{selectedText}\n\n↓\n{translation}", "OK");
+                    }
+                    else
+                    {
+                        await DisplayAlert("Ошибка", "Сервис перевода не найден", "OK");
+                    }
+                }
+                else
+                {
+                    await DisplayAlert("Информация", "Выделите слово перед нажатием кнопки", "OK");
+                }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Ошибка", ex.Message, "OK");
+            }
         }
 
-        private async Task SaveFavoriteStatus()
+        // No navigation interfering – we don't cancel anything
+        private void OnWebViewNavigating(object sender, WebNavigatingEventArgs e)
         {
-            try
-            {
-                var userId = Preferences.Get("user_id", "");
-                if (App.ServiceProvider == null || string.IsNullOrEmpty(userId)) return;
-                var db = App.ServiceProvider.GetRequiredService<LocalDatabaseService>();
-                var article = new Article
-                {
-                    Title = ArticleTitle,
-                    Summary = SummaryLabel.Text,
-                    Source = SourceLabel.Text,
-                    Url = ArticleUrl
-                };
-                await db.MarkAsFavoriteAsync(userId, article);
-            }
-            catch { }
+            // Do nothing – allow all navigation. Links are disabled via CSS anyway.
+        }
+
+        private void OnWebViewNavigated(object sender, WebNavigatedEventArgs e)
+        {
+            // Optional: log if needed
         }
 
         private async void OnOpenUrlClicked(object sender, EventArgs e)
@@ -225,60 +258,5 @@ namespace NewsApp.Views
             if (!string.IsNullOrEmpty(ArticleUrl))
                 await Launcher.OpenAsync(ArticleUrl);
         }
-
-        private async void OnTranslateSelectedClicked(object sender, EventArgs e)
-        {
-            try
-            {
-                var jsCode = "window.getSelection().toString().trim();";
-                var selectedText = await ContentWebView.EvaluateJavaScriptAsync(jsCode);
-
-                if (!string.IsNullOrEmpty(selectedText) && selectedText.Length < 100)
-                {
-                    TranslateSelectedButton.Text = "⏳ Перевод...";
-                    TranslateSelectedButton.IsEnabled = false;
-
-                    var translationService = App.ServiceProvider?.GetRequiredService<TranslationService>();
-                    if (translationService != null)
-                    {
-                        var translation = await translationService.TranslateWordAsync(selectedText);
-                        await DisplayAlert("Перевод", $"{selectedText}\n\n↓\n{translation}", "OK");
-                    }
-                }
-                else if (selectedText.Length >= 100)
-                {
-                    await DisplayAlert("Информация", "Выделено слишком много текста (максимум 100 символов)", "OK");
-                }
-                else
-                {
-                    await DisplayAlert("Информация", "Выделите слово или фразу для перевода", "OK");
-                }
-            }
-            catch (Exception ex)
-            {
-                await DisplayAlert("Ошибка", ex.Message, "OK");
-            }
-            finally
-            {
-                TranslateSelectedButton.Text = "📖 Перевести выделенное слово";
-                TranslateSelectedButton.IsEnabled = true;
-            }
-        }
-
-        private bool _isInitialLoad = true;
-
-        private void OnWebViewNavigating(object sender, WebNavigatingEventArgs e)
-        {
-            // Разрешаем первую загрузку (когда мы устанавливаем Source)
-            if (_isInitialLoad)
-            {
-                _isInitialLoad = false;
-                return;
-            }
-
-            // Отменяем все последующие переходы (по ссылкам внутри статьи)
-            e.Cancel = true;
-        }
-        private void OnWebViewNavigated(object sender, WebNavigatedEventArgs e) { }
     }
 }

@@ -59,52 +59,25 @@
         <!-- Translation button (new) -->
         <Button Grid.Row="3" 
                 x:Name="TranslateSelectedButton"
-        
-        <!-- Header -->
-        <Frame Grid.Row="0" BackgroundColor="White" CornerRadius="0" Padding="15" HasShadow="True">
-            <StackLayout>
-                <Label x:Name="TitleLabel" FontSize="22" FontAttributes="Bold" TextColor="#1A1A2E" LineBreakMode="WordWrap"/>
-                <StackLayout Orientation="Horizontal" Margin="0,10,0,0">
-                    <Label Text="📰 " FontSize="12"/>
-                    <Label x:Name="SourceLabel" FontSize="12" TextColor="#1976D2"/>
-                </StackLayout>
-            </StackLayout>
-        </Frame>
-        
-        <!-- Action Buttons -->
-        <Frame Grid.Row="1" BackgroundColor="White" CornerRadius="0" Padding="10" HasShadow="False">
-            <StackLayout Orientation="Horizontal" Spacing="15" HorizontalOptions="Center">
-                <HorizontalStackLayout Spacing="5">
-                    <CheckBox x:Name="ReadCheckBox" Color="#4CAF50" VerticalOptions="Center"/>
-                    <Label x:Name="ReadLabel" Text="Прочитано" FontSize="12" TextColor="#666" VerticalOptions="Center">
-                        <Label.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnReadTapped"/>
-                        </Label.GestureRecognizers>
-                    </Label>
-                </HorizontalStackLayout>
-                <HorizontalStackLayout Spacing="5">
-                    <CheckBox x:Name="FavoriteCheckBox" Color="#FF9800" VerticalOptions="Center"/>
-                    <Label x:Name="FavoriteLabel" Text="Избранное" FontSize="12" TextColor="#666" VerticalOptions="Center">
-                        <Label.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnFavoriteTapped"/>
-                        </Label.GestureRecognizers>
-                    </Label>
-                </HorizontalStackLayout>
-            </StackLayout>
-        </Frame>
-        
-        <!-- Content -->
-        <ScrollView Grid.Row="2" Padding="15">
-            <Frame BackgroundColor="White" CornerRadius="15" Padding="20" HasShadow="True">
-                <StackLayout>
-                    <Label x:Name="SummaryLabel" FontSize="15" TextColor="#333" FontAttributes="Italic" LineBreakMode="WordWrap"/>
-                    <BoxView HeightRequest="1" BackgroundColor="#E0E0E0" Margin="0,15"/>
-                    <Label x:Name="ContentLabel" FontSize="14" TextColor="#1A1A2E" LineBreakMode="WordWrap"/>
-                </StackLayout>
-            </Frame>
-        </ScrollView>
+                Text="📖 Перевести выделенное слово" 
+                Margin="15,0,15,5"
+                BackgroundColor="#FF5722" 
+                TextColor="White"
+                FontSize="14" FontAttributes="Bold"
+                CornerRadius="25"
+                HeightRequest="45"
+                Clicked="OnTranslateSelectedClicked"/>
+
+        <!-- Bottom "Open in browser" button (unchanged) -->
+        <Frame Grid.Row="4" BackgroundColor="White" CornerRadius="0" Padding="15" HasShadow="True">
+            <Button x:Name="OpenUrlButton" 
+                    Text="🔗 Читать полностью на сайте" 
+                    BackgroundColor="#1976D2" 
+                    TextColor="White" 
+                    FontSize="14" FontAttributes="Bold"
+                    CornerRadius="25"
+                    HeightRequest="45"
                     Clicked="OnOpenUrlClicked"/>
-        <Button Grid.Row="3" x:Name="OpenUrlButton" Text="Читать полностью" Margin="15" BackgroundColor="#2196F3" TextColor="White"/>
+        </Frame>
     </Grid>
 </ContentPage>
-   
