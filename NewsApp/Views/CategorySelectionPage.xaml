@@ -2,26 +2,135 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="NewsApp.Views.CategorySelectionPage"
-             Title="Выберите интересы">
-    <VerticalStackLayout Spacing="20" Padding="20">
-        <Label Text="Какие темы вам интересны?" FontSize="24" HorizontalOptions="Center"/>
-        <CollectionView ItemsSource="{Binding AvailableCategories}">
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
-                    <Button Text="{Binding NameRu}"
-                            Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ToggleCategoryCommand}"
-                            CommandParameter="{Binding}"
-                            BackgroundColor="LightGray"
-                            Margin="5"/>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
-        <Button Text="Продолжить"
-                Command="{Binding SaveAndContinueCommand}"
-                HorizontalOptions="Center"
-                BackgroundColor="Green"
-                TextColor="White"/>
-        <Label Text="{Binding SelectedCategories.Count, StringFormat='Выбрано: {0}'}" 
-       HorizontalOptions="Center" Margin="10"/>
-    </VerticalStackLayout>
+             Title="Выберите интересы"
+             BackgroundColor="#F5F5F5">
+    <ScrollView>
+        <StackLayout Padding="20">
+            <Label Text="👋 Привет!" 
+                   FontSize="32" FontAttributes="Bold" 
+                   TextColor="#1A1A2E" HorizontalOptions="Center" Margin="0,20,0,10"/>
+            
+            <Label Text="Выберите темы, которые вас интересуют" 
+                   FontSize="16" TextColor="#666" 
+                   HorizontalOptions="Center" Margin="0,0,0,30"/>
+            
+            <!-- Мир -->
+            <Frame CornerRadius="15" Padding="15" Margin="0,0,0,15">
+                <Frame.Background>
+                    <SolidColorBrush Color="White"/>
+                </Frame.Background>
+                <Frame.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCat1Tapped"/>
+                </Frame.GestureRecognizers>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackLayout Grid.Column="0">
+                        <Label Text="🌍 Мир" FontSize="18" FontAttributes="Bold" TextColor="#1A1A2E"/>
+                        <Label Text="Новости со всего мира" FontSize="12" TextColor="#888"/>
+                    </StackLayout>
+                    <CheckBox x:Name="Cat1" Grid.Column="1" VerticalOptions="Center"/>
+                </Grid>
+            </Frame>
+            
+            <!-- Технологии -->
+            <Frame CornerRadius="15" Padding="15" Margin="0,0,0,15">
+                <Frame.Background>
+                    <SolidColorBrush Color="White"/>
+                </Frame.Background>
+                <Frame.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCat2Tapped"/>
+                </Frame.GestureRecognizers>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackLayout Grid.Column="0">
+                        <Label Text="💻 Технологии" FontSize="18" FontAttributes="Bold" TextColor="#1A1A2E"/>
+                        <Label Text="Гаджеты, софт, инновации" FontSize="12" TextColor="#888"/>
+                    </StackLayout>
+                    <CheckBox x:Name="Cat2" Grid.Column="1" VerticalOptions="Center"/>
+                </Grid>
+            </Frame>
+            
+            <!-- Бизнес -->
+            <Frame CornerRadius="15" Padding="15" Margin="0,0,0,15">
+                <Frame.Background>
+                    <SolidColorBrush Color="White"/>
+                </Frame.Background>
+                <Frame.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCat3Tapped"/>
+                </Frame.GestureRecognizers>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackLayout Grid.Column="0">
+                        <Label Text="💼 Бизнес" FontSize="18" FontAttributes="Bold" TextColor="#1A1A2E"/>
+                        <Label Text="Экономика, финансы, рынки" FontSize="12" TextColor="#888"/>
+                    </StackLayout>
+                    <CheckBox x:Name="Cat3" Grid.Column="1" VerticalOptions="Center"/>
+                </Grid>
+            </Frame>
+            
+            <!-- Спорт -->
+            <Frame CornerRadius="15" Padding="15" Margin="0,0,0,15">
+                <Frame.Background>
+                    <SolidColorBrush Color="White"/>
+                </Frame.Background>
+                <Frame.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCat4Tapped"/>
+                </Frame.GestureRecognizers>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackLayout Grid.Column="0">
+                        <Label Text="⚽ Спорт" FontSize="18" FontAttributes="Bold" TextColor="#1A1A2E"/>
+                        <Label Text="Футбол, теннис и многое другое" FontSize="12" TextColor="#888"/>
+                    </StackLayout>
+                    <CheckBox x:Name="Cat4" Grid.Column="1" VerticalOptions="Center"/>
+                </Grid>
+            </Frame>
+            
+            <!-- Наука -->
+            <Frame CornerRadius="15" Padding="15" Margin="0,0,0,15">
+                <Frame.Background>
+                    <SolidColorBrush Color="White"/>
+                </Frame.Background>
+                <Frame.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCat5Tapped"/>
+                </Frame.GestureRecognizers>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackLayout Grid.Column="0">
+                        <Label Text="🔬 Наука" FontSize="18" FontAttributes="Bold" TextColor="#1A1A2E"/>
+                        <Label Text="Исследования и открытия" FontSize="12" TextColor="#888"/>
+                    </StackLayout>
+                    <CheckBox x:Name="Cat5" Grid.Column="1" VerticalOptions="Center"/>
+                </Grid>
+            </Frame>
+            
+            <Button Text="Продолжить →" 
+                    Clicked="OnContinue" 
+                    BackgroundColor="#4CAF50" 
+                    TextColor="White" 
+                    FontSize="18" FontAttributes="Bold"
+                    CornerRadius="25"
+                    HeightRequest="50"
+                    Margin="0,20,0,0"/>
+            
+            <Label x:Name="CountLabel" Text="Выбрано: 0" 
+                   FontSize="14" TextColor="#888" 
+                   HorizontalOptions="Center" Margin="0,15,0,0"/>
+        </StackLayout>
+    </ScrollView>
 </ContentPage>

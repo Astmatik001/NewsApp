@@ -18,33 +18,31 @@ namespace NewsApp.Views
     {
         public string ArticleUrl { get; set; }
         public string ArticleTitle { get; set; }
+        private bool _isUpdating = false;
 
         public ArticleDetailPage()
         {
             InitializeComponent();
             OpenUrlButton.Clicked += OnOpenUrlClicked;
-            TranslateSelectedButton.Clicked += OnTranslateSelectedClicked;
-
-            ContentWebView.HandlerChanged += OnWebViewHandlerChanged;
-
-            ReadCheckBox.CheckedChanged += async (s, e) =>
-            {
+            
+            ReadCheckBox.CheckedChanged += async (s, e) => {
                 ReadLabel.Text = ReadCheckBox.IsChecked ? "Прочитано ✓" : "Прочитано";
                 ReadLabel.TextColor = ReadCheckBox.IsChecked ? Colors.Green : Colors.Gray;
                 if (ReadCheckBox.IsChecked && !string.IsNullOrEmpty(ArticleUrl))
                     await SaveReadStatus();
+                }
             };
-
-            FavoriteCheckBox.CheckedChanged += async (s, e) =>
-            {
+            
+            FavoriteCheckBox.CheckedChanged += async (s, e) => {
                 FavoriteLabel.Text = FavoriteCheckBox.IsChecked ? "В избранном ★" : "В избранное";
                 FavoriteLabel.TextColor = FavoriteCheckBox.IsChecked ? Colors.Orange : Colors.Gray;
                 if (FavoriteCheckBox.IsChecked && !string.IsNullOrEmpty(ArticleUrl))
                     await SaveFavoriteStatus();
+                }
             };
         }
 
-        private void OnWebViewHandlerChanged(object sender, EventArgs e)
+        private async Task SaveReadStatus()
         {
             //SetupCustomWebViewClient();
         }
