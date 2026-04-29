@@ -10,10 +10,6 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 
-#if !WINDOWS
-using Android.Media;
-#endif
-
 namespace NewsApp.Views
 {
     [XamlCompilation(XamlCompilationOptions.Compile)]
@@ -260,41 +256,33 @@ namespace NewsApp.Views
             {
                 return;
             }
-            
+
             // Пауза -> Продолжить
             if (_isPaused)
             {
-#if !WINDOWS
-                _androidPlayer?.Start();
-#else
                 _audioPlayer?.Play();
-#endif
                 _isPaused = false;
                 _isPlaying = true;
                 UpdateButtons();
                 return;
             }
-            
+
             // Играет -> Пауза
             if (_isPlaying)
             {
-#if !WINDOWS
-                _androidPlayer?.Pause();
-#else
                 _audioPlayer?.Pause();
-#endif
                 _isPlaying = false;
                 _isPaused = true;
                 UpdateButtons();
                 return;
             }
-            
+
             // Проверяем состояние кнопки - если "Загрузка" то выходим
             if (TtsButton.Text.Contains("Загрузка"))
             {
                 return;
             }
-            
+
             // Запуск нового аудио
             _isProcessing = true;
             TtsButton.IsEnabled = false;
@@ -325,6 +313,14 @@ namespace NewsApp.Views
                 }
 
                 var audioStream = await ttsService.SynthesizeSpeechAsync(textToSpeak);
+                if (audioStream == null)
+                {
+                    await DisplayAlert("Ошибка", "Не удалось получить аудио от сервиса озвучки", "OK");
+                    _isProcessing = false;
+                    UpdateButtons();
+                    return;
+                }
+
                 var tempFile = Path.Combine(Path.GetTempPath(), $"tts_{Guid.NewGuid()}.mp3");
 
                 using (var fileStream = File.Create(tempFile))
@@ -334,41 +330,35 @@ namespace NewsApp.Views
 
                 try
                 {
-#if !WINDOWS
-                    _androidPlayer = new MediaPlayer();
-                    _androidPlayer.SetDataSource(tempFile);
-                    _androidPlayer.Prepare();
-                    _androidPlayer.Completion += (s, args) => {
+                    var audioManager = App.ServiceProvider?.GetRequiredService<IAudioManager>();
+                    if (audioManager == null)
+                    {
+                        await DisplayAlert("Ошибка", "Сервис аудио не найден.", "OK");
+                        _isProcessing = false;
+                        UpdateButtons();
+                        return;
+                    }
+
+                    _audioPlayer = audioManager.CreatePlayer(tempFile);
+                    if (_audioPlayer == null)
+                    {
+                        await DisplayAlert("Ошибка", "Не удалось создать аудио плеер", "OK");
+                        _isProcessing = false;
+                        UpdateButtons();
+                        return;
+                    }
+                    _audioPlayer.PlaybackEnded += (s, args) => {
                         _isPlaying = false;
                         _isPaused = false;
                         _isProcessing = false;
                         StopAudio(fullStop: true);
                         try { File.Delete(tempFile); } catch { }
                     };
-                    _androidPlayer.Start();
+                    _audioPlayer.Play();
                     _isProcessing = false;
                     _isPlaying = true;
                     _isPaused = false;
                     UpdateButtons();
-#else
-                    var audioManager = App.ServiceProvider?.GetService<IAudioManager>();
-                    if (audioManager != null)
-                    {
-                        _audioPlayer = audioManager.CreatePlayer(tempFile);
-                        _audioPlayer.PlaybackEnded += (s, args) => {
-                            _isPlaying = false;
-                            _isPaused = false;
-                            _isProcessing = false;
-                            StopAudio(fullStop: true);
-                            try { File.Delete(tempFile); } catch { }
-                        };
-                        _audioPlayer.Play();
-                        _isProcessing = false;
-                        _isPlaying = true;
-                        _isPaused = false;
-                        UpdateButtons();
-                    }
-#endif
                 }
                 catch (Exception ex)
                 {
@@ -376,7 +366,7 @@ namespace NewsApp.Views
                     await DisplayAlert("Ошибка воспроизведения", ex.Message, "OK");
                     _isProcessing = false;
                     UpdateButtons();
-}
+                }
             }
             catch (Exception ex)
             {
@@ -424,7 +414,7 @@ namespace NewsApp.Views
             _isPaused = false;
             if (fullStop)
                 _isProcessing = false;
-            
+
             if (_audioPlayer != null)
             {
                 try
@@ -440,19 +430,6 @@ namespace NewsApp.Views
                 catch { }
                 _audioPlayer = null;
             }
-#if !WINDOWS
-            if (_androidPlayer != null)
-            {
-                try
-                {
-                    if (_androidPlayer.IsPlaying)
-                        _androidPlayer.Stop();
-                    _androidPlayer.Release();
-                }
-                catch { }
-                _androidPlayer = null;
-            }
-#endif
             UpdateButtons();
         }
 
@@ -476,7 +453,7 @@ namespace NewsApp.Views
                     TtsButton.IsEnabled = true;
                 }
             }
-            
+
             if (StopButton != null)
             {
                 if (_isPlaying || _isPaused)
@@ -491,9 +468,5 @@ namespace NewsApp.Views
                 }
             }
         }
-
-#if !WINDOWS
-        private MediaPlayer? _androidPlayer;
-#endif
     }
 }
