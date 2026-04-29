@@ -59,14 +59,32 @@
         <!-- Translation button (new) -->
         <Frame Grid.Row="3" BackgroundColor="White" CornerRadius="0" Padding="15,10" HasShadow="False">
             <StackLayout Spacing="10">
-                <Button x:Name="TtsButton"
-                        Text="🔊 Озвучить"
-                        BackgroundColor="#9C27B0"
-                        TextColor="White"
-                        FontSize="14" FontAttributes="Bold"
-                        CornerRadius="25"
-                        HeightRequest="45"
-                        Clicked="OnTtsClicked"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="TtsButton"
+                            Text="▶ Воспроизведение"
+                            BackgroundColor="#9C27B0"
+                            TextColor="White"
+                            FontSize="14" FontAttributes="Bold"
+                            CornerRadius="25"
+                            HeightRequest="45"
+                            Clicked="OnTtsClicked"/>
+                    <Button x:Name="StopButton"
+                            Text="⏹ Стоп"
+                            Grid.Column="2"
+                            BackgroundColor="#757575"
+                            TextColor="White"
+                            FontSize="14" FontAttributes="Bold"
+                            CornerRadius="25"
+                            WidthRequest="80"
+                            HeightRequest="45"
+                            Clicked="OnStopClicked"
+                            IsEnabled="False"/>
+                </Grid>
                 <Button x:Name="TranslateSelectedButton"
                         Text="📖 Перевести выделенное слово"
                         BackgroundColor="#FF5722"

@@ -25,6 +25,7 @@ namespace NewsApp.Views
         private bool _isUpdating = false;
         private IAudioPlayer? _audioPlayer;
         private bool _isPlaying = false;
+        private bool _isPaused = false;
         private bool _isProcessing = false;
         private string _fullText = "";
 
@@ -33,7 +34,7 @@ namespace NewsApp.Views
             InitializeComponent();
             OpenUrlButton.Clicked += OnOpenUrlClicked;
             TranslateSelectedButton.Clicked += OnTranslateSelectedClicked;
-            // TtsButton.Clicked removed - handled in XAML
+            StopButton.Clicked += OnStopClicked;
             Disappearing += OnPageDisappearing;
 
             ReadCheckBox.CheckedChanged += async (s, e) => {
@@ -255,37 +256,53 @@ namespace NewsApp.Views
             }
         }
 
-private async void OnTtsClicked(object sender, EventArgs e)
+        private async void OnTtsClicked(object sender, EventArgs e)
         {
-            // Сохраняем состояние ДО любых изменений
-            bool wasPlaying = _isPlaying;
-            
             // Если уже обрабатывается - выходим (защита от race condition)
             if (_isProcessing)
             {
                 return;
             }
             
-            // Если аудио играет - останавливаем и выходим
-            if (wasPlaying)
+            // Пауза -> Продолжить
+            if (_isPaused)
             {
-                StopAudio();
+#if !WINDOWS
+                _androidPlayer?.Start();
+#else
+                _audioPlayer?.Play();
+#endif
+                _isPaused = false;
+                _isPlaying = true;
+                UpdateButtons();
                 return;
             }
             
-            // Для надежности - проверяем состояние кнопки  
+            // Играет -> Пауза
+            if (_isPlaying)
+            {
+#if !WINDOWS
+                _androidPlayer?.Pause();
+#else
+                _audioPlayer?.Pause();
+#endif
+                _isPlaying = false;
+                _isPaused = true;
+                UpdateButtons();
+                return;
+            }
+            
+            // Проверяем состояние кнопки - если "Загрузка" то выходим
             if (TtsButton.Text.Contains("Загрузка"))
             {
-                // Уже идет загрузка нового аудио
                 return;
             }
             
-            // С этого момента начинаем новый запуск
+            // Запуск нового аудио
             _isProcessing = true;
-            
-            // Меняем текст кнопки
             TtsButton.IsEnabled = false;
             TtsButton.Text = "⏳ Загрузка...";
+            StopButton.IsEnabled = false;
 
             var textToSpeak = _fullText;
             if (string.IsNullOrEmpty(textToSpeak))
@@ -294,9 +311,8 @@ private async void OnTtsClicked(object sender, EventArgs e)
             if (string.IsNullOrEmpty(textToSpeak))
             {
                 await DisplayAlert("Информация", "Нет текста для озвучки", "OK");
-                TtsButton.Text = "🔊 Озвучить";
                 _isProcessing = false;
-                TtsButton.IsEnabled = true;
+                UpdateButtons();
                 return;
             }
 
@@ -306,9 +322,8 @@ private async void OnTtsClicked(object sender, EventArgs e)
                 if (ttsService == null)
                 {
                     await DisplayAlert("Ошибка", "Сервис озвучки не найден", "OK");
-                    TtsButton.Text = "🔊 Озвучить";
                     _isProcessing = false;
-                    TtsButton.IsEnabled = true;
+                    UpdateButtons();
                     return;
                 }
 
@@ -328,19 +343,16 @@ private async void OnTtsClicked(object sender, EventArgs e)
                     _androidPlayer.Prepare();
                     _androidPlayer.Completion += (s, args) => {
                         _isPlaying = false;
+                        _isPaused = false;
                         _isProcessing = false;
-                        if (TtsButton != null)
-                        {
-                            TtsButton.Text = "🔊 Озвучить";
-                            TtsButton.IsEnabled = true;
-                        }
-                        StopAudio();
+                        StopAudio(fullStop: true);
                         try { File.Delete(tempFile); } catch { }
                     };
                     _androidPlayer.Start();
+                    _isProcessing = false;
                     _isPlaying = true;
-                    TtsButton.Text = "⏹ Остановить";
-                    TtsButton.IsEnabled = true;
+                    _isPaused = false;
+                    UpdateButtons();
 #else
                     var audioManager = App.ServiceProvider?.GetService<IAudioManager>();
                     if (audioManager != null)
@@ -348,19 +360,16 @@ private async void OnTtsClicked(object sender, EventArgs e)
                         _audioPlayer = audioManager.CreatePlayer(tempFile);
                         _audioPlayer.PlaybackEnded += (s, args) => {
                             _isPlaying = false;
+                            _isPaused = false;
                             _isProcessing = false;
-                            if (TtsButton != null)
-                            {
-                                TtsButton.Text = "🔊 Озвучить";
-                                TtsButton.IsEnabled = true;
-                            }
-                            StopAudio();
+                            StopAudio(fullStop: true);
                             try { File.Delete(tempFile); } catch { }
                         };
                         _audioPlayer.Play();
+                        _isProcessing = false;
                         _isPlaying = true;
-                        TtsButton.Text = "⏹ Остановить";
-                        TtsButton.IsEnabled = true;
+                        _isPaused = false;
+                        UpdateButtons();
                     }
 #endif
                 }
@@ -368,21 +377,25 @@ private async void OnTtsClicked(object sender, EventArgs e)
                 {
                     System.Diagnostics.Debug.WriteLine($"[TTS] PlayError: {ex}");
                     await DisplayAlert("Ошибка воспроизведения", ex.Message, "OK");
-                    TtsButton.Text = "🔊 Озвучить";
-                }
+                    _isProcessing = false;
+                    UpdateButtons();
+}
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[TTS] Error: {ex}");
                 await DisplayAlert("Ошибка", ex.Message, "OK");
-                if (TtsButton != null)
-                    TtsButton.Text = "🔊 Озвучить";
-            }
-            finally
-            {
                 _isProcessing = false;
-                if (TtsButton != null && !_isPlaying)
-                    TtsButton.IsEnabled = true;
+                UpdateButtons();
+            }
+        }
+
+        private void OnStopClicked(object sender, EventArgs e)
+        {
+            // Полная остановка - сбрасывает аудио
+            if (_isPlaying || _isPaused)
+            {
+                StopAudio(fullStop: true);
             }
         }
 
@@ -405,12 +418,16 @@ private async void OnTtsClicked(object sender, EventArgs e)
 
         private void OnPageDisappearing(object sender, EventArgs e)
         {
-            StopAudio();
+            StopAudio(fullStop: true);
         }
 
-        private void StopAudio()
+        private void StopAudio(bool fullStop = false)
         {
             _isPlaying = false;
+            _isPaused = false;
+            if (fullStop)
+                _isProcessing = false;
+            
             if (_audioPlayer != null)
             {
                 try
@@ -439,10 +456,42 @@ private async void OnTtsClicked(object sender, EventArgs e)
                 _androidPlayer = null;
             }
 #endif
+            UpdateButtons();
+        }
+
+        private void UpdateButtons()
+        {
             if (TtsButton != null)
             {
-                TtsButton.Text = "🔊 Озвучить";
-                TtsButton.IsEnabled = true;
+                if (_isPlaying)
+                {
+                    TtsButton.Text = "⏸ Пауза";
+                    TtsButton.IsEnabled = true;
+                }
+                else if (_isPaused)
+                {
+                    TtsButton.Text = "▶ Воспроизведение";
+                    TtsButton.IsEnabled = true;
+                }
+                else
+                {
+                    TtsButton.Text = "▶ Воспроизведение";
+                    TtsButton.IsEnabled = true;
+                }
+            }
+            
+            if (StopButton != null)
+            {
+                if (_isPlaying || _isPaused)
+                {
+                    StopButton.IsEnabled = true;
+                    StopButton.BackgroundColor = Color.FromArgb("#D32F2F"); // Red
+                }
+                else
+                {
+                    StopButton.IsEnabled = false;
+                    StopButton.BackgroundColor = Color.FromArgb("#757575"); // Gray
+                }
             }
         }
 
