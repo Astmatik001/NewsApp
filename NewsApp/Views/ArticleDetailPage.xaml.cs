@@ -31,11 +31,8 @@ namespace NewsApp.Views
 
         public ArticleDetailPage()
         {
-            InitializeComponent();
-            OpenUrlButton.Clicked += OnOpenUrlClicked;
-            TranslateSelectedButton.Clicked += OnTranslateSelectedClicked;
-            StopButton.Clicked += OnStopClicked;
-            Disappearing += OnPageDisappearing;
+    InitializeComponent();
+    Disappearing += OnPageDisappearing;
 
             ReadCheckBox.CheckedChanged += async (s, e) => {
                 if (_isUpdating) return;
