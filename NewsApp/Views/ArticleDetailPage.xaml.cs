@@ -5,8 +5,14 @@ using Microsoft.Maui.Graphics;
 using NewsApp.Models;
 using NewsApp.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Plugin.Maui.Audio;
 using System;
+using System.IO;
 using System.Threading.Tasks;
+
+#if !WINDOWS
+using Android.Media;
+#endif
 
 namespace NewsApp.Views
 {
@@ -17,12 +23,18 @@ namespace NewsApp.Views
         public string ArticleTitle { get; set; }
         private string _summary;
         private bool _isUpdating = false;
+        private IAudioPlayer? _audioPlayer;
+        private bool _isPlaying = false;
+        private bool _isProcessing = false;
+        private string _fullText = "";
 
         public ArticleDetailPage()
         {
             InitializeComponent();
             OpenUrlButton.Clicked += OnOpenUrlClicked;
             TranslateSelectedButton.Clicked += OnTranslateSelectedClicked;
+            // TtsButton.Clicked removed - handled in XAML
+            Disappearing += OnPageDisappearing;
 
             ReadCheckBox.CheckedChanged += async (s, e) => {
                 if (_isUpdating) return;
@@ -112,6 +124,7 @@ namespace NewsApp.Views
                 };
 
                 var content = await Task.Run(() => FetchArticleContentAsync(url));
+                _fullText = content ?? "";
                 string displayContent;
                 if (!string.IsNullOrEmpty(content))
                 {
@@ -242,7 +255,138 @@ namespace NewsApp.Views
             }
         }
 
-        // No navigation interfering – we don't cancel anything
+private async void OnTtsClicked(object sender, EventArgs e)
+        {
+            // Сохраняем состояние ДО любых изменений
+            bool wasPlaying = _isPlaying;
+            
+            // Если уже обрабатывается - выходим (защита от race condition)
+            if (_isProcessing)
+            {
+                return;
+            }
+            
+            // Если аудио играет - останавливаем и выходим
+            if (wasPlaying)
+            {
+                StopAudio();
+                return;
+            }
+            
+            // Для надежности - проверяем состояние кнопки  
+            if (TtsButton.Text.Contains("Загрузка"))
+            {
+                // Уже идет загрузка нового аудио
+                return;
+            }
+            
+            // С этого момента начинаем новый запуск
+            _isProcessing = true;
+            
+            // Меняем текст кнопки
+            TtsButton.IsEnabled = false;
+            TtsButton.Text = "⏳ Загрузка...";
+
+            var textToSpeak = _fullText;
+            if (string.IsNullOrEmpty(textToSpeak))
+                textToSpeak = _summary;
+
+            if (string.IsNullOrEmpty(textToSpeak))
+            {
+                await DisplayAlert("Информация", "Нет текста для озвучки", "OK");
+                TtsButton.Text = "🔊 Озвучить";
+                _isProcessing = false;
+                TtsButton.IsEnabled = true;
+                return;
+            }
+
+            try
+            {
+                var ttsService = App.ServiceProvider?.GetRequiredService<CambAiTtsService>();
+                if (ttsService == null)
+                {
+                    await DisplayAlert("Ошибка", "Сервис озвучки не найден", "OK");
+                    TtsButton.Text = "🔊 Озвучить";
+                    _isProcessing = false;
+                    TtsButton.IsEnabled = true;
+                    return;
+                }
+
+                var audioStream = await ttsService.SynthesizeSpeechAsync(textToSpeak);
+                var tempFile = Path.Combine(Path.GetTempPath(), $"tts_{Guid.NewGuid()}.mp3");
+
+                using (var fileStream = File.Create(tempFile))
+                {
+                    await audioStream.CopyToAsync(fileStream);
+                }
+
+                try
+                {
+#if !WINDOWS
+                    _androidPlayer = new MediaPlayer();
+                    _androidPlayer.SetDataSource(tempFile);
+                    _androidPlayer.Prepare();
+                    _androidPlayer.Completion += (s, args) => {
+                        _isPlaying = false;
+                        _isProcessing = false;
+                        if (TtsButton != null)
+                        {
+                            TtsButton.Text = "🔊 Озвучить";
+                            TtsButton.IsEnabled = true;
+                        }
+                        StopAudio();
+                        try { File.Delete(tempFile); } catch { }
+                    };
+                    _androidPlayer.Start();
+                    _isPlaying = true;
+                    TtsButton.Text = "⏹ Остановить";
+                    TtsButton.IsEnabled = true;
+#else
+                    var audioManager = App.ServiceProvider?.GetService<IAudioManager>();
+                    if (audioManager != null)
+                    {
+                        _audioPlayer = audioManager.CreatePlayer(tempFile);
+                        _audioPlayer.PlaybackEnded += (s, args) => {
+                            _isPlaying = false;
+                            _isProcessing = false;
+                            if (TtsButton != null)
+                            {
+                                TtsButton.Text = "🔊 Озвучить";
+                                TtsButton.IsEnabled = true;
+                            }
+                            StopAudio();
+                            try { File.Delete(tempFile); } catch { }
+                        };
+                        _audioPlayer.Play();
+                        _isPlaying = true;
+                        TtsButton.Text = "⏹ Остановить";
+                        TtsButton.IsEnabled = true;
+                    }
+#endif
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[TTS] PlayError: {ex}");
+                    await DisplayAlert("Ошибка воспроизведения", ex.Message, "OK");
+                    TtsButton.Text = "🔊 Озвучить";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TTS] Error: {ex}");
+                await DisplayAlert("Ошибка", ex.Message, "OK");
+                if (TtsButton != null)
+                    TtsButton.Text = "🔊 Озвучить";
+            }
+            finally
+            {
+                _isProcessing = false;
+                if (TtsButton != null && !_isPlaying)
+                    TtsButton.IsEnabled = true;
+            }
+        }
+
+        // No navigation interfering
         private void OnWebViewNavigating(object sender, WebNavigatingEventArgs e)
         {
             // Do nothing – allow all navigation. Links are disabled via CSS anyway.
@@ -258,5 +402,52 @@ namespace NewsApp.Views
             if (!string.IsNullOrEmpty(ArticleUrl))
                 await Launcher.OpenAsync(ArticleUrl);
         }
+
+        private void OnPageDisappearing(object sender, EventArgs e)
+        {
+            StopAudio();
+        }
+
+        private void StopAudio()
+        {
+            _isPlaying = false;
+            if (_audioPlayer != null)
+            {
+                try
+                {
+                    if (_audioPlayer.IsPlaying)
+                        _audioPlayer.Stop();
+                }
+                catch { }
+                try
+                {
+                    _audioPlayer.Dispose();
+                }
+                catch { }
+                _audioPlayer = null;
+            }
+#if !WINDOWS
+            if (_androidPlayer != null)
+            {
+                try
+                {
+                    if (_androidPlayer.IsPlaying)
+                        _androidPlayer.Stop();
+                    _androidPlayer.Release();
+                }
+                catch { }
+                _androidPlayer = null;
+            }
+#endif
+            if (TtsButton != null)
+            {
+                TtsButton.Text = "🔊 Озвучить";
+                TtsButton.IsEnabled = true;
+            }
+        }
+
+#if !WINDOWS
+        private MediaPlayer? _androidPlayer;
+#endif
     }
 }

@@ -79,11 +79,12 @@ public partial class App : Application
 
     private void ConfigureServices(IServiceCollection services, IConfiguration config)
     {
+        var cambAiApiKey = config["ApiSettings:CambAiApiKey"] ?? "";
         services.AddSingleton(new LocalDatabaseService());
         services.AddSingleton(new TranslationService(""));
         services.AddSingleton<INewsService, RssService>();
         services.AddSingleton<IAudioManager>(AudioManager.Current);
-        services.AddSingleton(new CambAiTtsService("dummy")); // если не используете
+        services.AddSingleton(new CambAiTtsService(cambAiApiKey));
         services.AddSingleton(provider => new AnalyticsService("", Preferences.Get("user_id", Guid.NewGuid().ToString())));
 
         services.AddTransient<CategorySelectionViewModel>();

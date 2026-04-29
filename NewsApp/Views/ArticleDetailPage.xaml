@@ -57,16 +57,26 @@
         </ScrollView>
 
         <!-- Translation button (new) -->
-        <Button Grid.Row="3" 
-                x:Name="TranslateSelectedButton"
-                Text="📖 Перевести выделенное слово" 
-                Margin="15,0,15,5"
-                BackgroundColor="#FF5722" 
-                TextColor="White"
-                FontSize="14" FontAttributes="Bold"
-                CornerRadius="25"
-                HeightRequest="45"
-                Clicked="OnTranslateSelectedClicked"/>
+        <Frame Grid.Row="3" BackgroundColor="White" CornerRadius="0" Padding="15,10" HasShadow="False">
+            <StackLayout Spacing="10">
+                <Button x:Name="TtsButton"
+                        Text="🔊 Озвучить"
+                        BackgroundColor="#9C27B0"
+                        TextColor="White"
+                        FontSize="14" FontAttributes="Bold"
+                        CornerRadius="25"
+                        HeightRequest="45"
+                        Clicked="OnTtsClicked"/>
+                <Button x:Name="TranslateSelectedButton"
+                        Text="📖 Перевести выделенное слово"
+                        BackgroundColor="#FF5722"
+                        TextColor="White"
+                        FontSize="14" FontAttributes="Bold"
+                        CornerRadius="25"
+                        HeightRequest="45"
+                        Clicked="OnTranslateSelectedClicked"/>
+            </StackLayout>
+        </Frame>
 
         <!-- Bottom "Open in browser" button (unchanged) -->
         <Frame Grid.Row="4" BackgroundColor="White" CornerRadius="0" Padding="15" HasShadow="True">
