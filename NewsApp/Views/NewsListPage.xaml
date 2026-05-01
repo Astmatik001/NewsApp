@@ -33,43 +33,41 @@
         </StackLayout>
         
         <!-- News List -->
-        <ListView Grid.Row="1" 
-                  ItemsSource="{Binding Headlines}" 
-                  ItemSelected="OnItemSelected" 
-                  HasUnevenRows="True" 
-                  BackgroundColor="#F5F5F5"
-                  Margin="0">
-            <ListView.ItemTemplate>
+        <CollectionView Grid.Row="1" 
+                        ItemsSource="{Binding Headlines}" 
+                        SelectionMode="Single"
+                        SelectionChanged="OnItemSelected"
+                        BackgroundColor="#F5F5F5"
+                        Margin="0">
+            <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <ViewCell>
-                        <Frame BackgroundColor="White" Margin="10,5" CornerRadius="15" Padding="15">
-                            <StackLayout>
-                                <!-- Category Badge -->
-                                <Frame BackgroundColor="#E3F2FD" CornerRadius="10" Padding="8,4" HorizontalOptions="Start" Margin="0,0,0,8">
-                                    <Label Text="{Binding Category}" FontSize="10" TextColor="#1976D2" FontAttributes="Bold"/>
-                                </Frame>
-                                
-                                <!-- Title -->
-                                <Label Text="{Binding Title}" 
-                                       FontSize="15" FontAttributes="Bold" 
-                                       TextColor="#1A1A2E" 
-                                       MaxLines="3" LineBreakMode="WordWrap"/>
-                                
-                                <!-- Summary -->
-                                <Label Text="{Binding Summary}" 
-                                       FontSize="12" TextColor="#666" 
-                                       MaxLines="2" Margin="0,8,0,0"/>
-                                
-                                <!-- Source & Date -->
-                                <StackLayout Orientation="Horizontal" Margin="0,10,0,0">
-                                    <Label Text="📰 " FontSize="10"/>
-                                    <Label Text="{Binding Source}" FontSize="10" TextColor="#888"/>
-                                </StackLayout>
+                    <Frame BackgroundColor="White" Margin="10,5" CornerRadius="15" Padding="15">
+                        <StackLayout>
+                            <!-- Category Badge -->
+                            <Frame BackgroundColor="#E3F2FD" CornerRadius="10" Padding="8,4" HorizontalOptions="Start" Margin="0,0,0,8">
+                                <Label Text="{Binding Category}" FontSize="10" TextColor="#1976D2" FontAttributes="Bold"/>
+                            </Frame>
+                            
+                            <!-- Title -->
+                            <Label Text="{Binding Title}" 
+                                   FontSize="15" FontAttributes="Bold" 
+                                   TextColor="#1A1A2E" 
+                                   MaxLines="3" LineBreakMode="WordWrap"/>
+                            
+                            <!-- Summary -->
+                            <Label Text="{Binding Summary}" 
+                                   FontSize="12" TextColor="#666" 
+                                   MaxLines="2" Margin="0,8,0,0"/>
+                            
+                            <!-- Source & Date -->
+                            <StackLayout Orientation="Horizontal" Margin="0,10,0,0">
+                                <Label Text="📰 " FontSize="10"/>
+                                <Label Text="{Binding Source}" FontSize="10" TextColor="#888"/>
                             </StackLayout>
-                        </Frame>
-                    </ViewCell>
+                        </StackLayout>
+                    </Frame>
                 </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
     </Grid>
 </ContentPage>

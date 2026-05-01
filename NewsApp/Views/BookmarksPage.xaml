@@ -25,23 +25,21 @@
         </StackLayout>
         
         <!-- List -->
-        <ListView Grid.Row="1" x:Name="ItemsListView" ItemSelected="OnItemSelected" HasUnevenRows="True" BackgroundColor="#F5F5F5" Margin="0,80,0,0">
-            <ListView.ItemTemplate>
+        <CollectionView Grid.Row="1" x:Name="ItemsListView" SelectionMode="Single" SelectionChanged="OnItemSelected" BackgroundColor="#F5F5F5" Margin="0,80,0,0">
+            <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <ViewCell>
-                        <Frame BackgroundColor="White" Margin="10,5" CornerRadius="15" Padding="15" HasShadow="True">
-                            <StackLayout>
-                                <Label Text="{Binding Title}" FontSize="15" FontAttributes="Bold" TextColor="#1A1A2E" MaxLines="2"/>
-                                <Label Text="{Binding Summary}" FontSize="12" TextColor="#666" MaxLines="2" Margin="0,5,0,0"/>
-                                <StackLayout Orientation="Horizontal" Margin="0,8,0,0">
-                                    <Label Text="📰 " FontSize="10"/>
-                                    <Label Text="{Binding Source}" FontSize="10" TextColor="#888"/>
-                                </StackLayout>
+                    <Frame BackgroundColor="White" Margin="10,5" CornerRadius="15" Padding="15" HasShadow="True">
+                        <StackLayout>
+                            <Label Text="{Binding Title}" FontSize="15" FontAttributes="Bold" TextColor="#1A1A2E" MaxLines="2"/>
+                            <Label Text="{Binding Summary}" FontSize="12" TextColor="#666" MaxLines="2" Margin="0,5,0,0"/>
+                            <StackLayout Orientation="Horizontal" Margin="0,8,0,0">
+                                <Label Text="📰 " FontSize="10"/>
+                                <Label Text="{Binding Source}" FontSize="10" TextColor="#888"/>
                             </StackLayout>
-                        </Frame>
-                    </ViewCell>
+                        </StackLayout>
+                    </Frame>
                 </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
     </Grid>
 </ContentPage>

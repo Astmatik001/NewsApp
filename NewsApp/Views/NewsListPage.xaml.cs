@@ -66,9 +66,9 @@ namespace NewsApp.Views
             await Navigation.PushAsync(new BookmarksPage());
         }
         
-        private async void OnItemSelected(object sender, SelectedItemChangedEventArgs e)
+        private async void OnItemSelected(object sender, SelectionChangedEventArgs e)
         {
-            if (e.SelectedItem is Article article)
+            if (e.CurrentSelection.FirstOrDefault() is Article article)
             {
                 if (!string.IsNullOrEmpty(article.Url))
                 {
@@ -80,7 +80,7 @@ namespace NewsApp.Views
                     await Navigation.PushAsync(detailPage);
                 }
             }
-            ((ListView)sender).SelectedItem = null;
+            ((CollectionView)sender).SelectedItem = null;
         }
     }
 }
