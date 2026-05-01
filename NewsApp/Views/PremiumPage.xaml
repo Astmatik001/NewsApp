@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NewsApp.Views.PremiumPage"
+             Title="Подписка"
+             BackgroundColor="#F5F5F5">
+    <ScrollView>
+        <StackLayout Padding="20">
+            <!-- Header -->
+            <Label Text="👑 Премиум"
+                   FontSize="32" FontAttributes="Bold"
+                   TextColor="#1A1A2E" HorizontalOptions="Center" Margin="0,20,0,10"/>
+            
+            <Label Text="Откройте все возможности приложения"
+                   FontSize="16" TextColor="#666"
+                   HorizontalOptions="Center" Margin="0,0,0,30"/>
+            
+            <!-- Free Plan -->
+            <Frame BackgroundColor="White" CornerRadius="20" Padding="20" Margin="0,0,0,15" HasShadow="True">
+                <StackLayout>
+                    <Label Text="🆓 Бесплатно"
+                           FontSize="20" FontAttributes="Bold"
+                           TextColor="#1A1A2E" HorizontalOptions="Center"/>
+                    
+                    <Label Text="0 ₽" FontSize="36" FontAttributes="Bold"
+                           TextColor="#2196F3" HorizontalOptions="Center"
+                           Margin="0,10,0,10"/>
+                    
+                    <BoxView HeightRequest="1" BackgroundColor="#E0E0E0" Margin="0,10"/>
+                    
+                    <StackLayout Spacing="10" Margin="0,15,0,0">
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="✓" FontSize="16" TextColor="#4CAF50" VerticalOptions="Center"/>
+                            <Label Text=" 3 новости в день" FontSize="14" TextColor="#333" VerticalOptions="Center"/>
+                        </StackLayout>
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="✓" FontSize="16" TextColor="#4CAF50" VerticalOptions="Center"/>
+                            <Label Text=" Базовые категории" FontSize="14" TextColor="#333" VerticalOptions="Center"/>
+                        </StackLayout>
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="✓" FontSize="16" TextColor="#4CAF50" VerticalOptions="Center"/>
+                            <Label Text=" Перевод новостей" FontSize="14" TextColor="#333" VerticalOptions="Center"/>
+                        </StackLayout>
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="✓" FontSize="16" TextColor="#4CAF50" VerticalOptions="Center"/>
+                            <Label Text=" Озвучка статей" FontSize="14" TextColor="#333" VerticalOptions="Center"/>
+                        </StackLayout>
+                    </StackLayout>
+                    
+                    <Button x:Name="FreeButton" Text="Выбрать" BackgroundColor="Transparent"
+                            TextColor="#2196F3" FontSize="14"
+                            BorderColor="#2196F3" BorderWidth="1"
+                            CornerRadius="20" HeightRequest="40"
+                            Margin="0,20,0,0"
+                            Clicked="OnSelectFree"/>
+                </StackLayout>
+            </Frame>
+            
+            <!-- Premium Plan -->
+            <Frame BackgroundColor="White" CornerRadius="20" Padding="20" Margin="0,0,0,15" HasShadow="True">
+                <StackLayout>
+                    <StackLayout Orientation="Horizontal" HorizontalOptions="Center">
+                        <Label Text="👑 Премиум" FontSize="20" FontAttributes="Bold" TextColor="#FF9800"/>
+                        <Frame BackgroundColor="#FF9800" Padding="8,4" CornerRadius="10" Margin="10,0,0,0">
+                            <Label Text="ПОПУЛЯРНО" FontSize="10" TextColor="White" FontAttributes="Bold"/>
+                        </Frame>
+                    </StackLayout>
+                    
+                    <StackLayout Orientation="Horizontal" HorizontalOptions="Center" Margin="0,10,0,10">
+                        <Label Text="299 ₽" FontSize="36" FontAttributes="Bold" TextColor="#FF9800"/>
+                        <Label Text="/мес" FontSize="16" TextColor="#999" VerticalOptions="End" Margin="5,0,0,5"/>
+                    </StackLayout>
+                    
+                    <BoxView HeightRequest="1" BackgroundColor="#E0E0E0" Margin="0,10"/>
+                    
+                    <StackLayout Spacing="10" Margin="0,15,0,0">
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="✓" FontSize="16" TextColor="#4CAF50" VerticalOptions="Center"/>
+                            <Label Text=" Безлимитные новости" FontSize="14" TextColor="#333" VerticalOptions="Center"/>
+                        </StackLayout>
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="✓" FontSize="16" TextColor="#4CAF50" VerticalOptions="Center"/>
+                            <Label Text=" Все категории" FontSize="14" TextColor="#333" VerticalOptions="Center"/>
+                        </StackLayout>
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="✓" FontSize="16" TextColor="#4CAF50" VerticalOptions="Center"/>
+                            <Label Text=" Перевод новостей" FontSize="14" TextColor="#333" VerticalOptions="Center"/>
+                        </StackLayout>
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="✓" FontSize="16" TextColor="#4CAF50" VerticalOptions="Center"/>
+                            <Label Text=" Озвучка статей" FontSize="14" TextColor="#333" VerticalOptions="Center"/>
+                        </StackLayout>
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="✓" FontSize="16" TextColor="#4CAF50" VerticalOptions="Center"/>
+                            <Label Text=" Без рекламы" FontSize="14" TextColor="#333" VerticalOptions="Center"/>
+                        </StackLayout>
+                    </StackLayout>
+                    
+                    <Button x:Name="PremiumButton" Text="Выбрать" BackgroundColor="#FF9800"
+                            TextColor="White" FontSize="16" FontAttributes="Bold"
+                            CornerRadius="20" HeightRequest="45"
+                            Margin="0,20,0,0"
+                            Clicked="OnSelectPremium"/>
+                </StackLayout>
+            </Frame>
+            
+            <!-- Pro Plan -->
+            <Frame BackgroundColor="White" CornerRadius="20" Padding="20" Margin="0,0,0,15" HasShadow="True">
+                <StackLayout>
+                    <StackLayout Orientation="Horizontal" HorizontalOptions="Center">
+                        <Label Text="🚀 Pro" FontSize="20" FontAttributes="Bold" TextColor="#9C27B0"/>
+                        <Frame BackgroundColor="#9C27B0" Padding="8,4" CornerRadius="10" Margin="10,0,0,0">
+                            <Label Text="ДЛЯ ПРОФИ" FontSize="10" TextColor="White" FontAttributes="Bold"/>
+                        </Frame>
+                    </StackLayout>
+                    
+                    <StackLayout Orientation="Horizontal" HorizontalOptions="Center" Margin="0,10,0,10">
+                        <Label Text="799 ₽" FontSize="36" FontAttributes="Bold" TextColor="#9C27B0"/>
+                        <Label Text="/мес" FontSize="16" TextColor="#999" VerticalOptions="End" Margin="5,0,0,5"/>
+                    </StackLayout>
+                    
+                    <Label Text="Для тех, кто хочет большего" FontSize="12" TextColor="#666"
+                           HorizontalOptions="Center" Margin="0,0,0,15"/>
+                    
+                    <BoxView HeightRequest="1" BackgroundColor="#E0E0E0" Margin="0,10"/>
+                    
+                    <StackLayout Spacing="10" Margin="0,15,0,0">
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="✓" FontSize="16" TextColor="#4CAF50" VerticalOptions="Center"/>
+                            <Label Text=" Все возможности Премиум" FontSize="14" TextColor="#333" VerticalOptions="Center"/>
+                        </StackLayout>
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="✓" FontSize="16" TextColor="#4CAF50" VerticalOptions="Center"/>
+                            <Label Text=" Офлайн-доступ к новостям" FontSize="14" TextColor="#333" VerticalOptions="Center"/>
+                        </StackLayout>
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="✓" FontSize="16" TextColor="#4CAF50" VerticalOptions="Center"/>
+                            <Label Text=" Экспорт новостей в PDF" FontSize="14" TextColor="#333" VerticalOptions="Center"/>
+                        </StackLayout>
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="✓" FontSize="16" TextColor="#4CAF50" VerticalOptions="Center"/>
+                            <Label Text=" Приоритетная поддержка" FontSize="14" TextColor="#333" VerticalOptions="Center"/>
+                        </StackLayout>
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="✓" FontSize="16" TextColor="#4CAF50" VerticalOptions="Center"/>
+                            <Label Text=" Ранний доступ к новым функциям" FontSize="14" TextColor="#333" VerticalOptions="Center"/>
+                        </StackLayout>
+                        <StackLayout Orientation="Horizontal">
+                            <Label Text="✓" FontSize="16" TextColor="#4CAF50" VerticalOptions="Center"/>
+                            <Label Text=" Перевод и озвучка (расширенные)" FontSize="14" TextColor="#333" VerticalOptions="Center"/>
+                        </StackLayout>
+                    </StackLayout>
+                    
+                    <Button x:Name="ProButton" Text="Выбрать" BackgroundColor="#9C27B0"
+                            TextColor="White" FontSize="16" FontAttributes="Bold"
+                            CornerRadius="20" HeightRequest="45"
+                            Margin="0,20,0,0"
+                            Clicked="OnSelectPro"/>
+                </StackLayout>
+            </Frame>
+            
+            <Label Text="🔒 Безопасная оплата через App Store"
+                   FontSize="12" TextColor="#999"
+                   HorizontalOptions="Center" Margin="0,10,0,20"/>
+        </StackLayout>
+    </ScrollView>
+</ContentPage>

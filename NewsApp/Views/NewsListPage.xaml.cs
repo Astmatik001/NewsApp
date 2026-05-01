@@ -42,16 +42,19 @@ namespace NewsApp.Views
                     if (cats != null && cats.Count > 0)
                     {
                         CategoriesLabel.Text = string.Join(", ", cats);
+                        System.Diagnostics.Debug.WriteLine($"Loaded categories: {string.Join(", ", cats)}");
                     }
                     else
                     {
                         CategoriesLabel.Text = "Не выбраны";
+                        System.Diagnostics.Debug.WriteLine("No categories selected");
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 CategoriesLabel.Text = "Не выбраны";
+                System.Diagnostics.Debug.WriteLine($"Error loading categories: {ex.Message}");
             }
         }
 
@@ -64,6 +67,16 @@ namespace NewsApp.Views
         private async void OnBookmarksClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new BookmarksPage());
+        }
+
+        private async void OnPremiumClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new PremiumPage());
+        }
+
+        private async void OnChangeSubscription(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new PremiumPage());
         }
         
         private async void OnItemSelected(object sender, SelectedItemChangedEventArgs e)
