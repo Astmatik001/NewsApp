@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NewsApp.Services;
@@ -11,6 +11,16 @@ namespace NewsApp;
 public partial class App : Application
 {
     public static IServiceProvider? ServiceProvider { get; private set; }
+
+    protected override void OnHandlerChanged()
+    {
+        base.OnHandlerChanged();
+        Routing.RegisterRoute("//NewsListPage", typeof(NewsListPage));
+        Routing.RegisterRoute("//CategorySelectionPage", typeof(CategorySelectionPage));
+        Routing.RegisterRoute("//ArticleDetailPage", typeof(ArticleDetailPage));
+        Routing.RegisterRoute("//BookmarksPage", typeof(BookmarksPage));
+        Routing.RegisterRoute("//PremiumPage", typeof(PremiumPage));
+    }
 
     public App()
     {

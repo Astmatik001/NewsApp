@@ -28,18 +28,34 @@
             <StackLayout Orientation="Horizontal" Padding="10" Spacing="10">
                 <Button Text="🏠 Главная" FontSize="11" Padding="10,8" BackgroundColor="#E8F5E9" TextColor="#2E7D32" CornerRadius="15"/>
                 <Button Text="🔖 Закладки" Clicked="OnBookmarksClicked" FontSize="11" Padding="10,8" BackgroundColor="#FFF3E0" TextColor="#E65100" CornerRadius="15"/>
+                <Button Text="📜 Подписка" Clicked="OnPremiumClicked" FontSize="11" Padding="10,8" BackgroundColor="#F3E5F5" TextColor="#9C27B0" CornerRadius="15"/>
                 <Button Text="⚙️ Настройки" Clicked="OnChangeCategories" FontSize="11" Padding="10,8" BackgroundColor="#E3F2FD" TextColor="#1565C0" CornerRadius="15"/>
             </StackLayout>
         </StackLayout>
         
+        <!-- Loading Indicator -->
+        <StackLayout Grid.Row="1" 
+                     IsVisible="{Binding IsRefreshing}"
+                     VerticalOptions="Center"
+                     HorizontalOptions="Center"
+                     Spacing="10">
+            <ActivityIndicator IsRunning="{Binding IsRefreshing}" 
+                               Color="#1976D2"
+                               VerticalOptions="Center"
+                               HorizontalOptions="Center"/>
+            <Label Text="Загрузка новостей..."
+                   FontSize="14" TextColor="#666" HorizontalOptions="Center"/>
+        </StackLayout>
+        
         <!-- News List -->
-        <CollectionView Grid.Row="1" 
-                        ItemsSource="{Binding Headlines}" 
-                        SelectionMode="Single"
-                        SelectionChanged="OnItemSelected"
-                        BackgroundColor="#F5F5F5"
-                        Margin="0">
-            <CollectionView.ItemTemplate>
+        <ListView Grid.Row="1" 
+                  ItemsSource="{Binding Headlines}" 
+                  ItemSelected="OnItemSelected" 
+                  HasUnevenRows="True" 
+                  BackgroundColor="#F5F5F5"
+                  Margin="0"
+                  IsVisible="{Binding IsListVisible}">
+            <ListView.ItemTemplate>
                 <DataTemplate>
                     <Frame BackgroundColor="White" Margin="10,5" CornerRadius="15" Padding="15">
                         <StackLayout>
@@ -67,7 +83,34 @@
                         </StackLayout>
                     </Frame>
                 </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+            </ListView.ItemTemplate>
+        </ListView>
+        
+        <!-- Empty State -->
+        <StackLayout Grid.Row="1" 
+                     IsVisible="{Binding IsEmptyVisible}"
+                     VerticalOptions="Center"
+                     HorizontalOptions="Center"
+                     Spacing="15">
+            <Label Text="📭" FontSize="48" HorizontalOptions="Center"/>
+            <Label Text="{Binding ErrorMessage}"
+                   FontSize="14" TextColor="#888" HorizontalOptions="Center"/>
+            
+            <!-- Limit Message with Upgrade Button -->
+            <StackLayout IsVisible="{Binding ShowLimitMessage}"
+                         Spacing="10" HorizontalOptions="Center">
+                <Label Text="Это лимит бесплатного тарифа."
+                       FontSize="14" TextColor="#666" HorizontalOptions="Center"/>
+                <Button Text="Изменить подписку"
+                        BackgroundColor="#FF9800"
+                        TextColor="White"
+                        FontSize="14"
+                        FontAttributes="Bold"
+                        CornerRadius="20"
+                        HeightRequest="40"
+                        WidthRequest="180"
+                        Clicked="OnChangeSubscription"/>
+            </StackLayout>
+        </StackLayout>
     </Grid>
 </ContentPage>

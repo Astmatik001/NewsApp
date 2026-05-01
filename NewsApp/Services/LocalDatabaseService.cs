@@ -54,17 +54,24 @@ namespace NewsApp.Services
                     read_at TEXT,
                     UNIQUE(user_id, url)
                 );
-                CREATE TABLE IF NOT EXISTS favorite_articles (
+                 CREATE TABLE IF NOT EXISTS favorite_articles (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_id TEXT NOT NULL,
                     url TEXT NOT NULL,
                     title TEXT,
                     summary TEXT,
                     source TEXT,
-                    favorite_at TEXT,
+                    saved_at TEXT,
                     UNIQUE(user_id, url)
                 );
-            ";
+                CREATE TABLE IF NOT EXISTS daily_reads (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    read_date TEXT NOT NULL,
+                    read_count INTEGER DEFAULT 0,
+                    UNIQUE(user_id, read_date)
+                );
+             ";
             cmd.ExecuteNonQuery();
         }
 
@@ -243,6 +250,35 @@ namespace NewsApp.Services
                 });
             }
             return list;
+        }
+
+        public async Task<int> GetDailyReadCountAsync(string userId)
+        {
+            var today = DateTime.Now.ToString("yyyy-MM-dd");
+            using var conn = new SqliteConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT COALESCE(read_count, 0) FROM daily_reads WHERE user_id = $user AND read_date = $date";
+            cmd.Parameters.AddWithValue("$user", userId);
+            cmd.Parameters.AddWithValue("$date", today);
+            var result = await cmd.ExecuteScalarAsync();
+            return result == null ? 0 : Convert.ToInt32(result);
+        }
+
+        public async Task IncrementDailyReadAsync(string userId)
+        {
+            var today = DateTime.Now.ToString("yyyy-MM-dd");
+            using var conn = new SqliteConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+                INSERT INTO daily_reads (user_id, read_date, read_count) 
+                VALUES ($user, $date, 1)
+                ON CONFLICT(user_id, read_date) DO UPDATE SET read_count = read_count + 1
+            ";
+            cmd.Parameters.AddWithValue("$user", userId);
+            cmd.Parameters.AddWithValue("$date", today);
+            await cmd.ExecuteNonQueryAsync();
         }
     }
 }

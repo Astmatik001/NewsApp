@@ -31,6 +31,7 @@ namespace NewsApp.Services
 
                 try
                 {
+                    System.Diagnostics.Debug.WriteLine($"Loading RSS for {category} from {feedUrl}");
                     var feed = await Task.Run(async () =>
                     {
                         using var client = new HttpClient();
@@ -39,6 +40,7 @@ namespace NewsApp.Services
                         return SyndicationFeed.Load(reader);
                     }).ConfigureAwait(false);
 
+                    System.Diagnostics.Debug.WriteLine($"Loaded {feed.Items.Count()} items for {category}");
                     foreach (var item in feed.Items.Take(10))
                     {
                         articles.Add(new Article
@@ -51,6 +53,7 @@ namespace NewsApp.Services
                             PublishDate = item.PublishDate.DateTime
                         });
                     }
+                    System.Diagnostics.Debug.WriteLine($"Added {Math.Min(10, feed.Items.Count())} articles for {category}");
                 }
                 catch (Exception ex)
                 {

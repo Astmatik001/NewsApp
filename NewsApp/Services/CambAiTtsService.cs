@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -88,10 +88,10 @@ namespace NewsApp.Services
     public class CambAiVoice
     {
         public int Id { get; set; }
-        public string VoiceName { get; set; }
+        public string? VoiceName { get; set; }
         public int Gender { get; set; } // 1 = male, 2 = female
         public int Age { get; set; }
-        public string Description { get; set; }
+        public string? Description { get; set; }
         public bool IsPublished { get; set; }
         public int? Language { get; set; }
     }
