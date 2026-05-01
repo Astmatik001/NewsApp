@@ -253,12 +253,68 @@ namespace NewsApp.Views
         private static string HtmlToPlain(string html)
         {
             if (string.IsNullOrWhiteSpace(html)) return "";
+            
+            // Remove markdown images ![alt](url)
+            html = Regex.Replace(html, @"!\[[^\]]*\]\([^)]+\)", "", RegexOptions.IgnoreCase);
+            
+            // Remove HTML tags
             html = Regex.Replace(html, @"<br\s*/?>", "\n", RegexOptions.IgnoreCase);
             html = Regex.Replace(html, @"</(p|div|h[1-6]|li|blockquote|tr)[^>]*>", "\n\n", RegexOptions.IgnoreCase);
             html = Regex.Replace(html, @"<[^>]+>", "");
+            
+            // Decode HTML entities
             html = System.Net.WebUtility.HtmlDecode(html);
+            
+            // Remove URLs
+            html = Regex.Replace(html, @"https?://[^\s\]]+", "", RegexOptions.IgnoreCase);
+            
+            // Remove control characters except newlines
+            html = Regex.Replace(html, @"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "");
+            
+            // Normalize whitespace
             html = Regex.Replace(html, @"\n{3,}", "\n\n");
+            html = Regex.Replace(html, @"[ \t]{2,}", " ");
+            
             return html.Trim();
+        }
+
+        private static string DetectLanguage(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return "en-us";
+            
+            // Count Russian vs English characters
+            int russianChars = text.Count(c => (c >= 'а' && c <= 'я') || (c >= 'А' && c <= 'Я') || c == 'ё' || c == 'Ё');
+            int totalLetters = text.Count(c => char.IsLetter(c));
+            
+            if (totalLetters == 0)
+                return "en-us";
+            
+            double russianRatio = (double)russianChars / totalLetters;
+            return russianRatio > 0.3 ? "ru-ru" : "en-us";
+        }
+
+        private static string CleanTextForTts(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return "";
+            
+            // Remove markdown images
+            text = Regex.Replace(text, @"!\[[^\]]*\]\([^)]+\)", "", RegexOptions.IgnoreCase);
+            
+            // Remove URLs
+            text = Regex.Replace(text, @"https?://[^\s\]]+", "", RegexOptions.IgnoreCase);
+            
+            // Replace newlines with spaces for TTS
+            text = Regex.Replace(text, @"\s+", " ");
+            
+            // Remove control characters
+            text = Regex.Replace(text, @"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "");
+            
+            // Limit length (Camb AI limit ~5000 chars)
+            if (text.Length > 500)
+                text = text.Substring(0, 495) + "...";
+            
+            return text.Trim();
         }
 
         private async void OnTranslateSelectedClicked(object sender, EventArgs e)
@@ -326,6 +382,7 @@ namespace NewsApp.Views
             StopButton.IsEnabled = false;
 
             var textToSpeak = string.IsNullOrEmpty(_fullText) ? _summary : _fullText;
+            textToSpeak = CleanTextForTts(textToSpeak);
 
             if (string.IsNullOrEmpty(textToSpeak))
             {
@@ -346,7 +403,10 @@ namespace NewsApp.Views
                     return;
                 }
 
-                var audioStream = await ttsService.SynthesizeSpeechAsync(textToSpeak);
+                // Auto-detect language based on text content
+                var language = DetectLanguage(textToSpeak);
+                
+                var audioStream = await ttsService.SynthesizeSpeechAsync(textToSpeak, language: language);
                 if (audioStream == null)
                 {
                     await DisplayAlert("Ошибка", "Не удалось получить аудио от сервиса озвучки", "OK");
