@@ -352,6 +352,53 @@ namespace NewsApp.Views
             }
         }
 
+        private async void OnGrammarAnalysisClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                if (ContentWebView == null || !ContentWebView.IsLoaded)
+                {
+                    await DisplayAlert("Информация", "Подождите, страница ещё загружается", "OK");
+                    return;
+                }
+
+                var selectedText = await ContentWebView.EvaluateJavaScriptAsync("window.getSelection().toString().trim();");
+                if (string.IsNullOrEmpty(selectedText))
+                {
+                    await DisplayAlert("Информация", "Выделите текст перед нажатием кнопки", "OK");
+                    return;
+                }
+
+                var grammarService = App.ServiceProvider?.GetRequiredService<GrammarAnalysisService>();
+                if (grammarService == null)
+                {
+                    await DisplayAlert("Ошибка", "Сервис грамматического разбора не найден", "OK");
+                    return;
+                }
+
+                GrammarButton.IsEnabled = false;
+                GrammarButton.Text = "⏳ Разбор...";
+
+                System.Diagnostics.Debug.WriteLine($"Grammar: sending request for text: {selectedText}");
+
+                var result = await grammarService.AnalyzeGrammarAsync(selectedText);
+
+                System.Diagnostics.Debug.WriteLine($"Grammar: result received: {result}");
+
+                GrammarButton.IsEnabled = true;
+                GrammarButton.Text = "📝 Разбор";
+
+                await DisplayAlert("Грамматический разбор", $"{selectedText}\n\n{result}", "OK");
+            }
+            catch (Exception ex)
+            {
+                GrammarButton.IsEnabled = true;
+                GrammarButton.Text = "📝 Разбор";
+                System.Diagnostics.Debug.WriteLine($"Grammar error: {ex.Message}");
+                await DisplayAlert("Ошибка", ex.Message, "OK");
+            }
+        }
+
         private async void OnTtsClicked(object sender, EventArgs e)
         {
             if (_isProcessing) return;

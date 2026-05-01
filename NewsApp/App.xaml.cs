@@ -11,6 +11,13 @@ namespace NewsApp;
 public partial class App : Application
 {
     public static IServiceProvider? ServiceProvider { get; private set; }
+    public static IConfiguration? Configuration { get; private set; }
+
+    public App()
+    {
+        InitializeComponent();
+        MainPage = new ContentPage { Content = new Label { Text = "Loading..." } };
+    }
 
     protected override void OnHandlerChanged()
     {
@@ -22,22 +29,16 @@ public partial class App : Application
         Routing.RegisterRoute("//PremiumPage", typeof(PremiumPage));
     }
 
-    public App()
-    {
-        InitializeComponent();
-        // Temporary loading screen
-        MainPage = new ContentPage { Content = new Label { Text = "Loading..." } };
-    }
-
     protected override async void OnStart()
     {
         base.OnStart();
 
         try
         {
-            var config = await LoadConfigurationAsync();
+            Configuration = LoadConfiguration();
+            
             var services = new ServiceCollection();
-            ConfigureServices(services, config);
+            ConfigureServices(services, Configuration);
             ServiceProvider = services.BuildServiceProvider();
 
             var db = ServiceProvider.GetRequiredService<LocalDatabaseService>();
@@ -71,30 +72,53 @@ public partial class App : Application
                     {
                         new Label { Text = "Startup Error", FontAttributes = FontAttributes.Bold, FontSize = 20 },
                         new Label { Text = ex.Message, LineBreakMode = LineBreakMode.WordWrap },
-                        new Label { Text = ex.StackTrace, LineBreakMode = LineBreakMode.WordWrap, FontSize = 10 }
+                        new Label { Text = ex.StackTrace ?? "", LineBreakMode = LineBreakMode.WordWrap, FontSize = 10 }
                     }
                 }
             };
         }
     }
 
-    private async Task<IConfiguration> LoadConfigurationAsync()
+    private IConfiguration LoadConfiguration()
     {
-        var assembly = Assembly.GetExecutingAssembly();
-        using var stream = assembly.GetManifestResourceStream("NewsApp.appsettings.json");
-        if (stream == null)
-            throw new Exception("appsettings.json not found as embedded resource. Build Action must be 'Embedded resource'.");
-        return new ConfigurationBuilder().AddJsonStream(stream).Build();
+        try
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceNames = assembly.GetManifestResourceNames();
+            
+            // For .NET MAUI, embedded resource name is: Namespace.filename
+            var resourceName = resourceNames.FirstOrDefault(n => 
+                n.EndsWith("appsettings.json", StringComparison.OrdinalIgnoreCase));
+            
+            if (resourceName == null)
+            {
+                throw new Exception($"appsettings.json not found. Available resources: {string.Join(", ", resourceNames)}");
+            }
+            
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null)
+                throw new Exception($"Failed to load embedded resource: {resourceName}");
+                
+            return new ConfigurationBuilder().AddJsonStream(stream).Build();
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Failed to load configuration: {ex.Message}");
+        }
     }
 
     private void ConfigureServices(IServiceCollection services, IConfiguration config)
     {
         var cambAiApiKey = config["ApiSettings:CambAiApiKey"] ?? "";
+        var openRouterApiKey = config["ApiSettings:OpenRouterApiKey"] ?? "";
+        var openRouterEndpoint = config["ApiSettings:OpenRouterEndpoint"] ?? "https://openrouter.ai/api/v1/chat/completions";
+        var grammarModel = config["ApiSettings:GrammarAnalysisModel"] ?? "deepseek/deepseek-chat-v3:free";
+
         services.AddSingleton(new LocalDatabaseService());
         services.AddSingleton(new TranslationService(""));
+        services.AddSingleton(new GrammarAnalysisService(openRouterApiKey, openRouterEndpoint, grammarModel));
         services.AddSingleton<INewsService, RssService>();
         services.AddSingleton<IAudioManager>(AudioManager.Current);
-        services.AddSingleton(new CambAiTtsService(cambAiApiKey));
         services.AddSingleton(provider => new AnalyticsService("", Preferences.Get("user_id", Guid.NewGuid().ToString())));
 
         services.AddTransient<CategorySelectionViewModel>();

@@ -85,14 +85,30 @@
                             Clicked="OnStopClicked"
                             IsEnabled="False"/>
                 </Grid>
-                <Button x:Name="TranslateSelectedButton"
-                        Text="📖 Перевести выделенный текст"
-                        BackgroundColor="#FF5722"
-                        TextColor="White"
-                        FontSize="14" FontAttributes="Bold"
-                        CornerRadius="25"
-                        HeightRequest="45"
-                        Clicked="OnTranslateSelectedClicked"/>
+                <Grid ColumnSpacing="10" Margin="0,5,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="GrammarButton"
+                            Grid.Column="0"
+                            Text="📝 Разбор"
+                            BackgroundColor="#4CAF50"
+                            TextColor="White"
+                            FontSize="14" FontAttributes="Bold"
+                            CornerRadius="25"
+                            HeightRequest="45"
+                            Clicked="OnGrammarAnalysisClicked"/>
+                    <Button x:Name="TranslateSelectedButton"
+                            Grid.Column="1"
+                            Text="📖 Перевод"
+                            BackgroundColor="#FF5722"
+                            TextColor="White"
+                            FontSize="14" FontAttributes="Bold"
+                            CornerRadius="25"
+                            HeightRequest="45"
+                            Clicked="OnTranslateSelectedClicked"/>
+                </Grid>
             </StackLayout>
         </Frame>
 
