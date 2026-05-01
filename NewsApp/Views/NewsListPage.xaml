@@ -48,16 +48,18 @@
         </StackLayout>
         
         <!-- News List -->
-        <ListView Grid.Row="1" 
+        <CollectionView Grid.Row="1" 
                   ItemsSource="{Binding Headlines}" 
-                  ItemSelected="OnItemSelected" 
-                  HasUnevenRows="True" 
+                  SelectionMode="None"
                   BackgroundColor="#F5F5F5"
                   Margin="0"
                   IsVisible="{Binding IsListVisible}">
-            <ListView.ItemTemplate>
+            <CollectionView.ItemTemplate>
                 <DataTemplate>
                     <Frame BackgroundColor="White" Margin="10,5" CornerRadius="15" Padding="15">
+                        <Frame.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnItemTapped" NumberOfTapsRequired="1"/>
+                        </Frame.GestureRecognizers>
                         <StackLayout>
                             <!-- Category Badge -->
                             <Frame BackgroundColor="#E3F2FD" CornerRadius="10" Padding="8,4" HorizontalOptions="Start" Margin="0,0,0,8">
@@ -83,8 +85,8 @@
                         </StackLayout>
                     </Frame>
                 </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
         
         <!-- Empty State -->
         <StackLayout Grid.Row="1" 

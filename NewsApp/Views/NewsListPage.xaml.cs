@@ -79,10 +79,14 @@ namespace NewsApp.Views
             await Navigation.PushAsync(new PremiumPage());
         }
         
-        private async void OnItemSelected(object sender, SelectionChangedEventArgs e)
+        private async void OnItemTapped(object sender, TappedEventArgs e)
         {
-            if (e.CurrentSelection.FirstOrDefault() is Article article)
+            if (sender is Frame frame && frame.BindingContext is Article article)
             {
+                // Анимация нажатия
+                await frame.ScaleTo(0.95, 100);
+                await frame.ScaleTo(1.0, 100);
+                
                 if (!string.IsNullOrEmpty(article.Url))
                 {
                     var detailPage = new ArticleDetailPage(
@@ -93,7 +97,6 @@ namespace NewsApp.Views
                     await Navigation.PushAsync(detailPage);
                 }
             }
-            ((CollectionView)sender).SelectedItem = null;
         }
     }
 }
