@@ -119,6 +119,7 @@ public partial class App : Application
         services.AddSingleton(new GrammarAnalysisService(openRouterApiKey, openRouterEndpoint, grammarModel));
         services.AddSingleton<INewsService, RssService>();
         services.AddSingleton<IAudioManager>(AudioManager.Current);
+        services.AddSingleton(new CambAiTtsService(cambAiApiKey));
         services.AddSingleton(provider => new AnalyticsService("", Preferences.Get("user_id", Guid.NewGuid().ToString())));
 
         services.AddTransient<CategorySelectionViewModel>();
