@@ -10,13 +10,14 @@ namespace NewsApp.Services
 {
     public class RssService : INewsService
     {
-        private readonly Dictionary<string, string> _rssFeeds = new()
+        private readonly Dictionary<string, (string url, string source)> _rssFeeds = new()
         {
-            { "World", "https://rss.nytimes.com/services/xml/rss/nyt/World.xml" },
-            { "Technology", "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml" },
-            { "Business", "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml" },
-            { "Sports", "https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml" },
-            { "Science", "https://rss.nytimes.com/services/xml/rss/nyt/Science.xml" }
+            { "World",      ("https://rss.nytimes.com/services/xml/rss/nyt/World.xml",      "NYTimes RSS") },
+            { "Technology", ("https://feeds.arstechnica.com/arstechnica/index", "Ars Technica") },
+            { "Business",   ("https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",   "NYTimes RSS") },
+            // The Guardian — open access, full articles load without paywall
+            { "Sports",     ("https://www.theguardian.com/sport/rss",                       "The Guardian") },
+            { "Science",    ("https://rss.nytimes.com/services/xml/rss/nyt/Science.xml",    "NYTimes RSS") },
         };
 
         public async Task<List<Article>> GetHeadlinesAsync(List<string> categories)
@@ -26,7 +27,7 @@ namespace NewsApp.Services
             foreach (var category in categories)
             {
                 if (!_rssFeeds.ContainsKey(category)) continue;
-                var feedUrl = _rssFeeds[category];
+                var (feedUrl, source) = _rssFeeds[category];
 
                 try
                 {
@@ -46,7 +47,7 @@ namespace NewsApp.Services
                             Summary = item.Summary?.Text,
                             Url = item.Links.FirstOrDefault()?.Uri.ToString(),
                             Category = category,
-                            Source = "NYTimes RSS",
+                            Source = source,
                             PublishDate = item.PublishDate.DateTime
                         });
                     }

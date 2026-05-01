@@ -2,12 +2,17 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Xaml;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Graphics;
-using NewsApp.Models;
 using NewsApp.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Plugin.Maui.Audio;
+using SmartReader;
+using Article = NewsApp.Models.Article;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace NewsApp.Views
@@ -27,8 +32,8 @@ namespace NewsApp.Views
 
         public ArticleDetailPage()
         {
-    InitializeComponent();
-    Disappearing += OnPageDisappearing;
+            InitializeComponent();
+            Disappearing += OnPageDisappearing;
 
             ReadCheckBox.CheckedChanged += async (s, e) => {
                 if (_isUpdating) return;
@@ -61,13 +66,7 @@ namespace NewsApp.Views
                 var userId = Preferences.Get("user_id", "");
                 if (App.ServiceProvider == null || string.IsNullOrEmpty(userId)) return;
                 var db = App.ServiceProvider.GetRequiredService<LocalDatabaseService>();
-                var article = new Article
-                {
-                    Title = ArticleTitle,
-                    Summary = _summary,
-                    Source = SourceLabel.Text,
-                    Url = ArticleUrl
-                };
+                var article = new Article { Title = ArticleTitle, Summary = _summary, Source = SourceLabel.Text, Url = ArticleUrl };
                 await db.MarkAsReadAsync(userId, article);
             }
             catch { }
@@ -80,13 +79,7 @@ namespace NewsApp.Views
                 var userId = Preferences.Get("user_id", "");
                 if (App.ServiceProvider == null || string.IsNullOrEmpty(userId)) return;
                 var db = App.ServiceProvider.GetRequiredService<LocalDatabaseService>();
-                var article = new Article
-                {
-                    Title = ArticleTitle,
-                    Summary = _summary,
-                    Source = SourceLabel.Text,
-                    Url = ArticleUrl
-                };
+                var article = new Article { Title = ArticleTitle, Summary = _summary, Source = SourceLabel.Text, Url = ArticleUrl };
                 await db.MarkAsFavoriteAsync(userId, article);
             }
             catch { }
@@ -111,35 +104,21 @@ namespace NewsApp.Views
 
             try
             {
-                // Show loading placeholder
                 ContentWebView.Source = new HtmlWebViewSource
                 {
-                    Html = "<html><body style='padding:20px'><p>Загрузка...</p></body></html>"
+                    Html = "<html><body style='padding:20px;font-family:system-ui'><p>⏳ Загрузка...</p></body></html>"
                 };
 
-                var content = await Task.Run(() => FetchArticleContentAsync(url));
-                _fullText = content ?? "";
-                string displayContent;
-                if (!string.IsNullOrEmpty(content))
-                {
-                    var cleanContent = System.Text.RegularExpressions.Regex.Replace(content,
-                        @"<script.*?</script>", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                    cleanContent = System.Text.RegularExpressions.Regex.Replace(cleanContent,
-                        @"<style.*?</style>", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                    displayContent = cleanContent;
-                }
-                else
-                {
-                    displayContent = $@"
-                        <div style='color: #666; font-style: italic;'>
-                            {System.Security.SecurityElement.Escape(_summary ?? "Нет описания")}
-                        </div>
-                        <div style='color: #999; font-size: 14px; margin-top: 10px;'>
-                            Полный текст недоступен
-                        </div>";
-                }
+                var (htmlBody, plainText) = await Task.Run(() => FetchArticleContentAsync(url));
 
-                var htmlContent = $@"<!DOCTYPE html>
+                _fullText = plainText;
+
+                string displayContent = !string.IsNullOrWhiteSpace(htmlBody)
+                    ? htmlBody
+                    : $@"<p style='color:#666;font-style:italic'>{System.Security.SecurityElement.Escape(_summary ?? "Нет описания")}</p>
+                         <p style='color:#999;font-size:14px'>Полный текст недоступен — откройте статью на сайте.</p>";
+
+                var fullHtml = $@"<!DOCTYPE html>
 <html>
 <head>
     <meta charset='UTF-8'>
@@ -149,22 +128,27 @@ namespace NewsApp.Views
             padding: 15px;
             font-family: -apple-system, system-ui, sans-serif;
             font-size: 16px;
-            line-height: 1.6;
-            color: #333;
+            line-height: 1.7;
+            color: #222;
+            background: white;
             -webkit-user-select: text;
             user-select: text;
-            background: white;
         }}
-        p {{ margin-bottom: 1em; }}
-        a {{ pointer-events: none; color: inherit; text-decoration: none; }}
+        p  {{ margin-bottom: 1em; }}
+        h2, h3 {{ color: #1A1A2E; margin-top: 1.4em; }}
+        img {{ max-width: 100%; height: auto; border-radius: 6px; }}
+        a  {{ pointer-events: none; color: inherit; text-decoration: none; }}
+        blockquote {{ border-left: 3px solid #1976D2; margin: 1em 0; padding: 6px 14px; color: #555; font-style: italic; }}
+        figure {{ margin: 1em 0; }}
+        figcaption {{ font-size: 13px; color: #888; }}
     </style>
 </head>
 <body>
     {displayContent}
 </body>
 </html>";
-                // Set the source on UI thread
-                ContentWebView.Source = new HtmlWebViewSource { Html = htmlContent };
+
+                ContentWebView.Source = new HtmlWebViewSource { Html = fullHtml };
             }
             catch (Exception ex)
             {
@@ -175,42 +159,106 @@ namespace NewsApp.Views
             }
         }
 
-        private async Task<string> FetchArticleContentAsync(string url)
+        /// <summary>
+        /// Returns (htmlBody, plainText).
+        /// Strategy: 1) SmartReader  2) CSS-selector paragraph extraction  3) All &lt;p&gt; tags
+        /// </summary>
+        private async Task<(string html, string plain)> FetchArticleContentAsync(string url)
         {
+            // 1. SmartReader
+            try
+            {
+                var reader = new Reader(url);
+                var article = await reader.GetArticleAsync();
+                if (article != null && article.IsReadable && !string.IsNullOrWhiteSpace(article.Content))
+                {
+                    var plain = HtmlToPlain(article.Content);
+                    if (plain.Length > 200)
+                        return (article.Content, plain);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SmartReader: {ex.Message}");
+            }
+
+            // 2. Raw HTML extraction
             try
             {
                 using var client = new HttpClient();
-                client.Timeout = TimeSpan.FromSeconds(10);
-                var html = await client.GetStringAsync(url);
+                client.Timeout = TimeSpan.FromSeconds(15);
+                client.DefaultRequestHeaders.Add("User-Agent",
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                client.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
 
-                const string startTag = "<p";
-                const string endTag = "</p>";
-                var content = new System.Text.StringBuilder();
-                var index = 0;
+                var raw = await client.GetStringAsync(url);
 
-                while (true)
+                // Remove scripts/styles first
+                raw = Regex.Replace(raw, @"<(script|style)[^>]*>[\s\S]*?</\1>", "", RegexOptions.IgnoreCase);
+
+                // Try article containers
+                var containerPatterns = new[]
                 {
-                    index = html.IndexOf(startTag, index);
-                    if (index < 0) break;
-                    var closeIndex = html.IndexOf(endTag, index);
-                    if (closeIndex < 0) break;
-                    var para = html.Substring(index, closeIndex - index + 4);
-                    if (para.Contains("<p") && !para.Contains("class="))
+                    @"<article[^>]*>([\s\S]*?)</article>",
+                    @"<(?:div|section)[^>]+class=""[^""]*(?:article-body|articleBody|story-body|StoryBodyCompanion|post-content|entry-content|article-content|article__body|body-content|ArticleBody)[^""]*""[^>]*>([\s\S]*?)</(?:div|section)>",
+                    @"<section[^>]+name=""articleBody""[^>]*>([\s\S]*?)</section>",
+                    @"<main[^>]*>([\s\S]*?)</main>",
+                };
+
+                foreach (var pattern in containerPatterns)
+                {
+                    var m = Regex.Match(raw, pattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                    if (!m.Success) continue;
+
+                    var inner = m.Groups[1].Value;
+                    var paras = Regex.Matches(inner, @"<p[^>]*>([\s\S]*?)</p>", RegexOptions.IgnoreCase | RegexOptions.Singleline)
+                        .Cast<Match>()
+                        .Select(p => p.Value)
+                        .Where(p => HtmlToPlain(p).Length > 30)
+                        .ToList();
+
+                    if (paras.Count >= 3)
                     {
-                        var textStart = para.IndexOf(">", startTag.Length);
-                        if (textStart > 0)
-                        {
-                            var text = para.Substring(textStart + 1);
-                            if (text.Length > 20 && !text.Contains("<"))
-                                content.AppendLine(text.Trim());
-                        }
+                        var html = string.Join("\n", paras);
+                        var plain = HtmlToPlain(html);
+                        if (plain.Length > 200)
+                            return (html, plain);
                     }
-                    index = closeIndex + 1;
                 }
-                var result = content.ToString().Trim();
-                return string.IsNullOrEmpty(result) ? null : result;
+
+                // Fallback: all <p> from page
+                var allParas = Regex.Matches(raw, @"<p[^>]*>([\s\S]*?)</p>", RegexOptions.IgnoreCase | RegexOptions.Singleline)
+                    .Cast<Match>()
+                    .Select(p => p.Value)
+                    .Where(p => HtmlToPlain(p).Length > 60)
+                    .Take(60)
+                    .ToList();
+
+                if (allParas.Count >= 3)
+                {
+                    var html = string.Join("\n", allParas);
+                    var plain = HtmlToPlain(html);
+                    if (plain.Length > 200)
+                        return (html, plain);
+                }
             }
-            catch { return null; }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"RawHtml: {ex.Message}");
+            }
+
+            return (null, "");
+        }
+
+        private static string HtmlToPlain(string html)
+        {
+            if (string.IsNullOrWhiteSpace(html)) return "";
+            html = Regex.Replace(html, @"<br\s*/?>", "\n", RegexOptions.IgnoreCase);
+            html = Regex.Replace(html, @"</(p|div|h[1-6]|li|blockquote|tr)[^>]*>", "\n\n", RegexOptions.IgnoreCase);
+            html = Regex.Replace(html, @"<[^>]+>", "");
+            html = System.Net.WebUtility.HtmlDecode(html);
+            html = Regex.Replace(html, @"\n{3,}", "\n\n");
+            return html.Trim();
         }
 
         private async void OnTranslateSelectedClicked(object sender, EventArgs e)
@@ -223,8 +271,7 @@ namespace NewsApp.Views
                     return;
                 }
 
-                var js = "window.getSelection().toString().trim();";
-                var selectedText = await ContentWebView.EvaluateJavaScriptAsync(js);
+                var selectedText = await ContentWebView.EvaluateJavaScriptAsync("window.getSelection().toString().trim();");
                 if (!string.IsNullOrEmpty(selectedText))
                 {
                     var translationService = App.ServiceProvider?.GetRequiredService<TranslationService>();
@@ -251,13 +298,8 @@ namespace NewsApp.Views
 
         private async void OnTtsClicked(object sender, EventArgs e)
         {
-            // Если уже обрабатывается - выходим (защита от race condition)
-            if (_isProcessing)
-            {
-                return;
-            }
+            if (_isProcessing) return;
 
-            // Пауза -> Продолжить
             if (_isPaused)
             {
                 _audioPlayer?.Play();
@@ -267,7 +309,6 @@ namespace NewsApp.Views
                 return;
             }
 
-            // Играет -> Пауза
             if (_isPlaying)
             {
                 _audioPlayer?.Pause();
@@ -277,21 +318,14 @@ namespace NewsApp.Views
                 return;
             }
 
-            // Проверяем состояние кнопки - если "Загрузка" то выходим
-            if (TtsButton.Text.Contains("Загрузка"))
-            {
-                return;
-            }
+            if (TtsButton.Text.Contains("Загрузка")) return;
 
-            // Запуск нового аудио
             _isProcessing = true;
             TtsButton.IsEnabled = false;
             TtsButton.Text = "⏳ Загрузка...";
             StopButton.IsEnabled = false;
 
-            var textToSpeak = _fullText;
-            if (string.IsNullOrEmpty(textToSpeak))
-                textToSpeak = _summary;
+            var textToSpeak = string.IsNullOrEmpty(_fullText) ? _summary : _fullText;
 
             if (string.IsNullOrEmpty(textToSpeak))
             {
@@ -322,51 +356,40 @@ namespace NewsApp.Views
                 }
 
                 var tempFile = Path.Combine(Path.GetTempPath(), $"tts_{Guid.NewGuid()}.mp3");
-
                 using (var fileStream = File.Create(tempFile))
-                {
                     await audioStream.CopyToAsync(fileStream);
+
+                var audioManager = App.ServiceProvider?.GetRequiredService<IAudioManager>();
+                if (audioManager == null)
+                {
+                    await DisplayAlert("Ошибка", "Сервис аудио не найден.", "OK");
+                    _isProcessing = false;
+                    UpdateButtons();
+                    return;
                 }
 
-                try
+                _audioPlayer = audioManager.CreatePlayer(tempFile);
+                if (_audioPlayer == null)
                 {
-                    var audioManager = App.ServiceProvider?.GetRequiredService<IAudioManager>();
-                    if (audioManager == null)
-                    {
-                        await DisplayAlert("Ошибка", "Сервис аудио не найден.", "OK");
-                        _isProcessing = false;
-                        UpdateButtons();
-                        return;
-                    }
-
-                    _audioPlayer = audioManager.CreatePlayer(tempFile);
-                    if (_audioPlayer == null)
-                    {
-                        await DisplayAlert("Ошибка", "Не удалось создать аудио плеер", "OK");
-                        _isProcessing = false;
-                        UpdateButtons();
-                        return;
-                    }
-                    _audioPlayer.PlaybackEnded += (s, args) => {
-                        _isPlaying = false;
-                        _isPaused = false;
-                        _isProcessing = false;
-                        StopAudio(fullStop: true);
-                        try { File.Delete(tempFile); } catch { }
-                    };
-                    _audioPlayer.Play();
+                    await DisplayAlert("Ошибка", "Не удалось создать аудио плеер", "OK");
                     _isProcessing = false;
-                    _isPlaying = true;
+                    UpdateButtons();
+                    return;
+                }
+
+                _audioPlayer.PlaybackEnded += (s, args) => {
+                    _isPlaying = false;
                     _isPaused = false;
-                    UpdateButtons();
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[TTS] PlayError: {ex}");
-                    await DisplayAlert("Ошибка воспроизведения", ex.Message, "OK");
                     _isProcessing = false;
-                    UpdateButtons();
-                }
+                    StopAudio(fullStop: true);
+                    try { File.Delete(tempFile); } catch { }
+                };
+
+                _audioPlayer.Play();
+                _isProcessing = false;
+                _isPlaying = true;
+                _isPaused = false;
+                UpdateButtons();
             }
             catch (Exception ex)
             {
@@ -379,23 +402,12 @@ namespace NewsApp.Views
 
         private void OnStopClicked(object sender, EventArgs e)
         {
-            // Полная остановка - сбрасывает аудио
             if (_isPlaying || _isPaused)
-            {
                 StopAudio(fullStop: true);
-            }
         }
 
-        // No navigation interfering
-        private void OnWebViewNavigating(object sender, WebNavigatingEventArgs e)
-        {
-            // Do nothing – allow all navigation. Links are disabled via CSS anyway.
-        }
-
-        private void OnWebViewNavigated(object sender, WebNavigatedEventArgs e)
-        {
-            // Optional: log if needed
-        }
+        private void OnWebViewNavigating(object sender, WebNavigatingEventArgs e) { }
+        private void OnWebViewNavigated(object sender, WebNavigatedEventArgs e) { }
 
         private async void OnOpenUrlClicked(object sender, EventArgs e)
         {
@@ -403,31 +415,18 @@ namespace NewsApp.Views
                 await Launcher.OpenAsync(ArticleUrl);
         }
 
-        private void OnPageDisappearing(object sender, EventArgs e)
-        {
-            StopAudio(fullStop: true);
-        }
+        private void OnPageDisappearing(object sender, EventArgs e) => StopAudio(fullStop: true);
 
         private void StopAudio(bool fullStop = false)
         {
             _isPlaying = false;
             _isPaused = false;
-            if (fullStop)
-                _isProcessing = false;
+            if (fullStop) _isProcessing = false;
 
             if (_audioPlayer != null)
             {
-                try
-                {
-                    if (_audioPlayer.IsPlaying)
-                        _audioPlayer.Stop();
-                }
-                catch { }
-                try
-                {
-                    _audioPlayer.Dispose();
-                }
-                catch { }
+                try { if (_audioPlayer.IsPlaying) _audioPlayer.Stop(); } catch { }
+                try { _audioPlayer.Dispose(); } catch { }
                 _audioPlayer = null;
             }
             UpdateButtons();
@@ -437,35 +436,16 @@ namespace NewsApp.Views
         {
             if (TtsButton != null)
             {
-                if (_isPlaying)
-                {
-                    TtsButton.Text = "⏸ Пауза";
-                    TtsButton.IsEnabled = true;
-                }
-                else if (_isPaused)
-                {
-                    TtsButton.Text = "▶ Воспроизведение";
-                    TtsButton.IsEnabled = true;
-                }
-                else
-                {
-                    TtsButton.Text = "▶ Воспроизведение";
-                    TtsButton.IsEnabled = true;
-                }
+                TtsButton.Text = _isPlaying ? "⏸ Пауза" : "▶ Воспроизведение";
+                TtsButton.IsEnabled = true;
             }
 
             if (StopButton != null)
             {
-                if (_isPlaying || _isPaused)
-                {
-                    StopButton.IsEnabled = true;
-                    StopButton.BackgroundColor = Color.FromArgb("#D32F2F"); // Red
-                }
-                else
-                {
-                    StopButton.IsEnabled = false;
-                    StopButton.BackgroundColor = Color.FromArgb("#757575"); // Gray
-                }
+                StopButton.IsEnabled = _isPlaying || _isPaused;
+                StopButton.BackgroundColor = (_isPlaying || _isPaused)
+                    ? Color.FromArgb("#D32F2F")
+                    : Color.FromArgb("#757575");
             }
         }
     }
